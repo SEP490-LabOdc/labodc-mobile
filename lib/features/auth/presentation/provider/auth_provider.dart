@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../../domain/entities/auth_entity.dart';
 import '../../domain/use_cases/login_use_case.dart';
+import '../utils/biometric_helper.dart';
 
 class AuthProvider extends ChangeNotifier {
   final LoginUseCase loginUseCase;
@@ -39,9 +40,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  //Login với biometric (gọi sau khi xác thực thành công)
+  Future<bool> loginWithBiometric() async {
+    final credentials = await BiometricHelper.getCredentials();
+    if (credentials == null) return false;
+
+    return await login(credentials['username']!, credentials['password']!);
+  }
+
   void logout() {
     _auth = null;
     _error = null;
+    BiometricHelper.deleteCredentials();  // Xóa credential khi logout
     notifyListeners();
   }
 
