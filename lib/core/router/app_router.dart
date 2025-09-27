@@ -1,6 +1,8 @@
 // core/router/app_router.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:labodc_mobile/common/presentation/pages/setting_page.dart';
 
 // Pages imports
 import '../../features/admin/presentation/pages/admin_page.dart';
@@ -20,7 +22,8 @@ import '../../features/auth/presentation/provider/auth_provider.dart';
 import 'route_constants.dart';
 
 class AppRouter {
-  static final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> _rootNavigatorKey =
+  GlobalKey<NavigatorState>();
 
   static GoRouter createRouter(AuthProvider authProvider) {
     return GoRouter(
@@ -28,7 +31,7 @@ class AppRouter {
       initialLocation: Routes.splash,
       refreshListenable: authProvider,
 
-      // Redirect logic - đơn giản và rõ ràng
+      // Redirect logic
       redirect: (context, state) => _handleRedirect(state, authProvider),
 
       routes: [
@@ -36,9 +39,19 @@ class AppRouter {
         GoRoute(
           path: Routes.splash,
           name: Routes.splashName,
-          builder: (context, state) => SplashPage(
-            onFinish: () async => _navigateAfterSplash(context, authProvider),
-          ),
+          builder: (context, state) {
+            final authProvider = context.read<AuthProvider>();
+            return SplashPage(
+              onFinish: () async {
+                if (authProvider.isAuthenticated) {
+                  final route = AppRouter.getHomeRouteByRole(authProvider.role);
+                  context.go(route);
+                } else {
+                  context.go(Routes.home);
+                }
+              },
+            );
+          },
         ),
 
         GoRoute(
@@ -46,17 +59,20 @@ class AppRouter {
           name: Routes.homeName,
           builder: (context, state) => const HomePage(),
         ),
-
         GoRoute(
           path: Routes.login,
           name: Routes.loginName,
           builder: (context, state) => const LoginPage(),
         ),
-
         GoRoute(
           path: Routes.register,
           name: Routes.registerName,
           builder: (context, state) => const RegisterPage(),
+        ),
+        GoRoute(
+          path: Routes.setting,
+          name: Routes.settingName,
+          builder: (context, state) => const SettingPage(),
         ),
 
         // === PROTECTED ROUTES ===
@@ -65,25 +81,21 @@ class AppRouter {
           name: Routes.userName,
           builder: (context, state) => const UserPage(),
         ),
-
         GoRoute(
           path: Routes.admin,
           name: Routes.adminName,
           builder: (context, state) => const AdminPage(),
         ),
-
         GoRoute(
           path: Routes.talent,
           name: Routes.talentName,
           builder: (context, state) => const TalentMainPage(),
         ),
-
         GoRoute(
           path: Routes.mentor,
           name: Routes.mentorName,
           builder: (context, state) => const MentorMainPage(),
         ),
-
         GoRoute(
           path: Routes.company,
           name: Routes.companyName,
@@ -95,49 +107,51 @@ class AppRouter {
 
   // === PRIVATE METHODS ===
 
-  /// Xử lý redirect logic
-  static String? _handleRedirect(GoRouterState state, AuthProvider authProvider) {
+  /// Redirect logic
+  static String? _handleRedirect(
+      GoRouterState state, AuthProvider authProvider) {
     final currentPath = state.uri.toString();
     final isAuthenticated = authProvider.isAuthenticated;
 
-    // 1. Nếu chưa đăng nhập và truy cập protected route
+    // 1. Nếu chưa đăng nhập mà vào protected route
     if (!isAuthenticated && _isProtectedRoute(currentPath)) {
       return Routes.login;
     }
 
-    // 2. Nếu đã đăng nhập mà vẫn ở login page
+    // 2. Nếu đã login mà vẫn ở login page
     if (isAuthenticated && currentPath == Routes.login) {
-      return _getHomeRouteByRole(authProvider.role);
+      return getHomeRouteByRole(authProvider.role);
     }
 
-    // 3. Nếu đã đăng nhập mà vẫn ở home page (public) -> chuyển đến dashboard
+    // 3. Nếu đã login mà vẫn ở home page (public) → về dashboard theo role
     if (isAuthenticated && currentPath == Routes.home) {
-      return _getHomeRouteByRole(authProvider.role);
+      return getHomeRouteByRole(authProvider.role);
     }
 
-    // 4. Kiểm tra quyền truy cập role-based routes
+    // 4. Nếu login nhưng không đúng role
     if (isAuthenticated && _requiresRoleCheck(currentPath)) {
       if (!_hasRequiredRole(currentPath, authProvider.role)) {
-        return Routes.user; // 👈 Chuyển về user page thay vì home
+        return Routes.user;
       }
     }
 
     return null; // Không cần redirect
   }
 
-  /// Kiểm tra xem route có phải là protected không
+  /// Kiểm tra protected route
   static bool _isProtectedRoute(String path) {
     return !Routes.publicRoutes.any((route) => path.startsWith(route));
   }
 
-  /// Kiểm tra xem route có cần check role không
+  /// Route có cần check role?
   static bool _requiresRoleCheck(String path) {
     return path == Routes.admin ||
         path == Routes.talent ||
-        path == Routes.mentor;
+        path == Routes.mentor ||
+        path == Routes.company;
   }
 
-  /// Kiểm tra user có role phù hợp không
+  /// Kiểm tra quyền role
   static bool _hasRequiredRole(String path, String? userRole) {
     switch (path) {
       case Routes.admin:
@@ -153,8 +167,8 @@ class AppRouter {
     }
   }
 
-  /// Lấy route phù hợp theo role sau khi login
-  static String _getHomeRouteByRole(String? role) {
+  /// Lấy home route theo role
+  static String getHomeRouteByRole(String? role) {
     switch (role) {
       case 'admin':
         return Routes.admin;
@@ -165,35 +179,35 @@ class AppRouter {
       case 'company':
         return Routes.company;
       default:
-        return Routes.user; // 👈 Default cho user đã login nhưng không có role cụ thể
+        return Routes.user;
     }
   }
 
-  /// Navigate sau khi splash finish
-  static void _navigateAfterSplash(BuildContext context, AuthProvider authProvider) {
+  /// Navigate sau khi splash xong
+  static void _navigateAfterSplash(
+      BuildContext context, AuthProvider authProvider) {
     if (authProvider.isAuthenticated) {
-      // 👈 Đã login -> chuyển đến dashboard theo role
-      final route = _getHomeRouteByRole(authProvider.role);
+      final route = getHomeRouteByRole(authProvider.role);
       context.go(route);
     } else {
-      // 👈 Chưa login -> chuyển đến home page (public)
       context.go(Routes.home);
     }
   }
 
   // === UTILITY METHODS ===
 
-  /// Navigate đến route với name
-  static void goNamed(String name, {Map<String, String>? pathParameters}) {
-    _rootNavigatorKey.currentContext?.goNamed(name, pathParameters: pathParameters ?? {});
+  static void goNamed(String name,
+      {Map<String, String>? pathParameters}) {
+    _rootNavigatorKey.currentContext
+        ?.goNamed(name, pathParameters: pathParameters ?? {});
   }
 
-  /// Push route với name
-  static void pushNamed(String name, {Map<String, String>? pathParameters}) {
-    _rootNavigatorKey.currentContext?.pushNamed(name, pathParameters: pathParameters ?? {});
+  static void pushNamed(String name,
+      {Map<String, String>? pathParameters}) {
+    _rootNavigatorKey.currentContext
+        ?.pushNamed(name, pathParameters: pathParameters ?? {});
   }
 
-  /// Go back
   static void pop() {
     _rootNavigatorKey.currentContext?.pop();
   }
@@ -201,19 +215,16 @@ class AppRouter {
 
 // === EXTENSION METHODS ===
 extension AppRouterExtension on BuildContext {
-  /// Go to post detail
   void goToPostDetail(String postId) {
     goNamed(Routes.postDetailName, pathParameters: {'id': postId});
   }
 
-  /// Go to login
   void goToLogin() {
     go(Routes.login);
   }
 
-  /// Go to home based on role
   void goToRoleBasedHome(String? role) {
-    final route = AppRouter._getHomeRouteByRole(role);
+    final route = AppRouter.getHomeRouteByRole(role);
     go(route);
   }
 }

@@ -27,9 +27,19 @@ Future<void> main() async {
   await init(useFakeAuth: true);
 
   runApp(
-    BlocProvider(
-      create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent()),
-      child: const LabOdcApp(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(loginUseCase: getIt<LoginUseCase>()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => UserProvider(getUserProfile: getIt<GetUserProfile>()),
+        ),
+      ],
+      child: BlocProvider(
+        create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent()),
+        child: const LabOdcApp(),
+      ),
     ),
   );
 }
@@ -39,44 +49,31 @@ class LabOdcApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(loginUseCase: getIt<LoginUseCase>()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(getUserProfile: getIt<GetUserProfile>()),
-        ),
-      ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          return BlocBuilder<ThemeBloc, ThemeState>(
-            builder: (context, themeState) {
-              final isDarkMode = themeState.themeEntity?.themeType == ThemeType.dark;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final router = AppRouter.createRouter(authProvider);
 
-              return MaterialApp.router(
-                debugShowCheckedModeBanner: false,
-                title: 'LabODC',
-                theme: AppTheme.getTheme(false),
-                darkTheme: AppTheme.getTheme(true),
-                themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+    return BlocBuilder<ThemeBloc, ThemeState>(
+      builder: (context, themeState) {
+        final isDarkMode = themeState.themeEntity?.themeType == ThemeType.dark;
 
-                localizationsDelegates: const [
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: const [
-                  Locale('en'),
-                  Locale('vi'),
-                ],
-
-                routerConfig: AppRouter.createRouter(authProvider),
-              );
-            },
-          );
-        },
-      ),
+        return MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          title: 'LabODC',
+          theme: AppTheme.getTheme(false),
+          darkTheme: AppTheme.getTheme(true),
+          themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en'),
+            Locale('vi'),
+          ],
+          routerConfig: router,
+        );
+      },
     );
   }
 }

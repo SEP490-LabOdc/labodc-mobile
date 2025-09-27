@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+
 import '../../domain/entities/auth_entity.dart';
 import '../../domain/use_cases/login_use_case.dart';
 
@@ -13,7 +14,7 @@ class AuthProvider extends ChangeNotifier {
 
   // --- Getter ---
   String? get token => _auth?.token;
-  String? get role => _auth?.role;
+  String? get role => _auth?.role ?? '';
   bool get isLoading => _loading;
   String? get error => _error;
   String? get errorMessage => _error;
@@ -26,9 +27,11 @@ class AuthProvider extends ChangeNotifier {
     try {
       _auth = await loginUseCase(username, password);
       _error = null;
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
+      notifyListeners();
       return false;
     } finally {
       _loading = false;
@@ -38,6 +41,7 @@ class AuthProvider extends ChangeNotifier {
 
   void logout() {
     _auth = null;
+    _error = null;
     notifyListeners();
   }
 

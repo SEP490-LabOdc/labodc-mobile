@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/route_constants.dart';
 import '../../../../shared/widgets/expandable_text.dart';
 import '../../../../shared/widgets/network_image_with_fallback.dart';
 import '../../../../shared/widgets/reusable_card.dart';
@@ -13,7 +15,17 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Profile"),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Cài đặt',
+            onPressed: () {
+              context.push(Routes.setting);
+            },
+          ),
+        ],
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
