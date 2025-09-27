@@ -44,19 +44,19 @@ const String fakeExploreJsonData = """
     "partners": [
       {
         "name": "Startup XYZ",
-        "logoUrl": "https://via.placeholder.com/150/FF5733/FFFFFF?Text=XYZ"
+        "logoUrl": "https://png.pngtree.com/png-clipart/20220910/original/pngtree-company-logo-png-image_8528093.png"
       },
       {
         "name": "TechCorp",
-        "logoUrl": "https://via.placeholder.com/150/3375FF/FFFFFF?Text=Tech"
+        "logoUrl": "https://png.pngtree.com/png-clipart/20220910/original/pngtree-company-logo-png-image_8528093.png"
       },
       {
         "name": "Innovate Inc",
-        "logoUrl": "https://via.placeholder.com/150/33FF57/FFFFFF?Text=Inno"
+        "logoUrl": "https://png.pngtree.com/png-clipart/20220910/original/pngtree-company-logo-png-image_8528093.png"
       },
       {
         "name": "Global Solution",
-        "logoUrl": "https://via.placeholder.com/150/F0FF33/000000?Text=Global"
+        "logoUrl": "https://png.pngtree.com/png-clipart/20220910/original/pngtree-company-logo-png-image_8528093.png"
       }
     ]
   }

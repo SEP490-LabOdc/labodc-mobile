@@ -44,8 +44,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final isDark = context.watch<ThemeBloc>().state.themeEntity?.themeType == ThemeType.dark;
     return Scaffold(
       appBar: AppBar(
-        title: Text('LabOdc', style: TextStyle(fontWeight: FontWeight.bold)),
 
+        title: Row(
+          children: [
+            Image.asset('assets/images/logo.png', height: 32),
+            const SizedBox(width: 8),
+            Text('LabOdc', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         actions: [
           IconButton(
             icon: Icon(isDark ? Icons.dark_mode : Icons.light_mode),
@@ -221,7 +227,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       children: partners.map((partner) =>
           Column(
             children: [
-              Image.network(partner.logoUrl, width: 80, height: 80, fit: BoxFit.contain),
+              Image.asset('assets/images/logo.png', width: 80, height: 80, fit: BoxFit.contain),
               const SizedBox(height: 4),
               Text(partner.name, style: Theme.of(context).textTheme.bodySmall)
             ],

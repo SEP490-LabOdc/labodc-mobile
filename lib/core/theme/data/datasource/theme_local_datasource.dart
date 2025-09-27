@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:labodc_mobile/core/theme/domain/entity/theme_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

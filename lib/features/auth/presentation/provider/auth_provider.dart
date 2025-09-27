@@ -11,15 +11,15 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider({required this.loginUseCase});
 
+  // --- Getter ---
   String? get token => _auth?.token;
+  String? get role => _auth?.role;
   bool get isLoading => _loading;
   String? get error => _error;
-
-  // 👉 Thêm getter này
   String? get errorMessage => _error;
-
   bool get isAuthenticated => _auth != null;
 
+  // --- Actions ---
   Future<bool> login(String username, String password) async {
     _loading = true;
     notifyListeners();
@@ -42,10 +42,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   bool hasRole(String role) {
-    if (role == 'admin') {
-      return token?.contains("admin") ?? false;
-    }
-    return true;
+    return _auth?.role == role;
   }
 }
-

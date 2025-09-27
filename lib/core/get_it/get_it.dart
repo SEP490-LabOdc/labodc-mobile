@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/auth/data/data_sources/FakeAuthRemoteDataSource.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
 import '../theme/data/repository/theme_repository_impl.dart';
@@ -20,7 +21,7 @@ import '../../features/user/domain/use_cases/get_user_profile.dart';
 
 final getIt = GetIt.instance;
 
-Future<void> init() async {
+Future<void> init({bool useFakeAuth = true}) async {
   // SharedPreferences
   final sharedPrefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPrefs);
@@ -35,10 +36,20 @@ Future<void> init() async {
           () => ThemeBloc(getThemeUseCase: getIt(), saveThemeUseCase: getIt()));
 
   // Auth
-  getIt.registerLazySingleton<AuthRemoteDataSource>(
-          () => AuthRemoteDataSource());
-  getIt.registerLazySingleton<AuthRepository>(
-          () => AuthRepositoryImpl(remoteDataSource: getIt()));
+  if (useFakeAuth) {
+    // 🔹 Fake login
+    getIt.registerLazySingleton<FakeAuthRemoteDataSource>(
+            () => FakeAuthRemoteDataSource());
+    getIt.registerLazySingleton<AuthRepository>(
+            () => AuthRepositoryImpl(remoteDataSource: getIt<FakeAuthRemoteDataSource>()));
+  } else {
+    // 🔹 API thật
+    getIt.registerLazySingleton<AuthRemoteDataSource>(
+            () => AuthRemoteDataSource());
+    // getIt.registerLazySingleton<AuthRepository>(
+    //         () => AuthRepositoryImpl(remoteDataSource: getIt<AuthRemoteDataSource>()));
+  }
+
   getIt.registerLazySingleton<LoginUseCase>(
           () => LoginUseCase(getIt<AuthRepository>()));
 
