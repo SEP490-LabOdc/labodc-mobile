@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "728081238620",
+    "firebase_url": "https://myapplication-1c1c78cb-default-rtdb.firebaseio.com",
+    "project_id": "myapplication-1c1c78cb",
+    "storage_bucket": "myapplication-1c1c78cb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:728081238620:android:39c653df28888d2f187499",
+        "android_client_info": {
+          "package_name": "com.example.firebase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYGs5JrVNylZMLax6lzt_89vMEAd6t4v0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:728081238620:android:ac59b4227cae7f62187499",
+        "android_client_info": {
+          "package_name": "com.example.labodc_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYGs5JrVNylZMLax6lzt_89vMEAd6t4v0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

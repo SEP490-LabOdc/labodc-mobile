@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
-
 class ExpandableText extends StatefulWidget {
   final String text;
   final int maxLines;
@@ -23,6 +21,8 @@ class _ExpandableTextState extends State<ExpandableText> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isLong = widget.text.trim().replaceAll('\n', ' ').length > 150;
 
     return Column(
@@ -33,9 +33,9 @@ class _ExpandableTextState extends State<ExpandableText> {
           maxLines: _isExpanded || !isLong ? null : widget.maxLines,
           overflow: _isExpanded || !isLong ? TextOverflow.visible : TextOverflow.ellipsis,
           style: widget.style ??
-              const TextStyle(
+              TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: theme.colorScheme.onSurfaceVariant,
                 height: 1.4,
               ),
         ),
@@ -49,10 +49,10 @@ class _ExpandableTextState extends State<ExpandableText> {
             style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
             child: Text(
               _isExpanded ? 'Thu gọn' : 'Xem thêm',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                color: theme.colorScheme.primary,
               ),
             ),
           ),

@@ -1,11 +1,17 @@
+// lib/features/auth/presentation/pages/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../home/presentation/pages/home_page.dart';
-import '../../data/data_sources/auth_remote_data_source.dart';
+import 'package:flutter/foundation.dart'; // Thêm để dùng debugPrint
+
 import '../../presentation/provider/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../utils/biometric_helper.dart';  // Import mới
+import '../utils/biometric_helper.dart';
+import '../../../../core/router/app_router.dart';
+
+// 🔔 Thêm: rung nhẹ khi đăng nhập thành công
+import '../../../../core/services/vibration/vibration_service.dart';
+import '../../../../core/services/vibration/vibration_model.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,49 +27,13 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _obscurePassword = true;
   bool _rememberMe = false;
-  bool _canUseBiometric = false;  // Mới: Kiểm tra biometric
+  bool _canUseBiometric = false;
 
   @override
   void initState() {
     super.initState();
-    _checkBiometricAvailability();  // Mới: Kiểm tra biometric khi init
-  }
-
-  // Mới: Kiểm tra biometric và credential
-  Future<void> _checkBiometricAvailability() async {
-    final available = await BiometricHelper.isBiometricAvailable();
-    final credentials = await BiometricHelper.getCredentials();
-    if (available && credentials != null) {
-      setState(() {
-        _canUseBiometric = true;
-      });
-    }
-  }
-
-  // Mới: Xử lý login bằng biometric
-  Future<void> _onBiometricLogin() async {
-    final authenticated = await BiometricHelper.authenticate();
-    if (authenticated) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.loginWithBiometric();
-      if (success) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng nhập bằng vân tay thành công!'), backgroundColor: Colors.green),
-        );
-        context.go('/home');  // Hoặc route dựa trên role
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng nhập thất bại!'), backgroundColor: Colors.red),
-        );
-      }
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Xác thực vân tay thất bại!'), backgroundColor: Colors.orange),
-      );
-    }
+    // Kiểm tra Biometric ngay khi vào trang
+    _checkBiometricAvailability();
   }
 
   @override
@@ -73,6 +43,56 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // CHUYÊN NGHIỆP: Kiểm tra biometric và sự tồn tại của Auth Token (Refresh Token)
+  Future<void> _checkBiometricAvailability() async {
+    final available = await BiometricHelper.isBiometricAvailable();
+    // Dùng getAuthData() để check sự tồn tại của token và userId
+    final authData = await BiometricHelper.getAuthData();
+
+    // Chỉ bật _canUseBiometric nếu thiết bị hỗ trợ VÀ đã có token/userId được lưu
+    if (available && authData != null) {
+      setState(() {
+        _canUseBiometric = true;
+      });
+    }
+  }
+
+  // Xử lý login bằng biometric
+  Future<void> _onBiometricLogin() async {
+    final authenticated = await BiometricHelper.authenticate();
+    if (!mounted) return;
+
+    if (authenticated) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.loginWithBiometric();
+
+      if (!mounted) return;
+
+      if (success) {
+        await VibrationService.vibrate(VibrationType.light);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng nhập bằng vân tay thành công!'), backgroundColor: Colors.green),
+        );
+
+        // Điều hướng theo role
+        final route = AppRouter.getHomeRouteByRole(authProvider.role);
+        context.go(route);
+
+      } else {
+        // Lỗi: Biometric thành công nhưng Refresh Token hết hạn/thất bại
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.errorMessage ?? 'Phiên hết hạn, vui lòng đăng nhập thủ công.'), backgroundColor: Colors.red),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Xác thực vân tay thất bại!'), backgroundColor: Colors.orange),
+      );
+    }
+  }
+
+  // Xử lý login thủ công
   void _onLoginPressed() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
@@ -84,51 +104,71 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final success = await authProvider.login(email, password);
       if (!mounted) return;
+
       if (success) {
-        if (_rememberMe) {  // Mới: Lưu credential nếu Remember Me
-          await BiometricHelper.saveCredentials(email, password);
+        // CHUYÊN NGHIỆP: LƯU token an toàn nếu 'Nhớ tài khoản' được chọn
+        if (_rememberMe) {
+          // SỬA: Chỉ cần gọi saveBiometricToken() vì nó đã không còn nhận tham số
+          // và sẽ tự lấy _auth?.refreshToken và _auth?.userId
+          await authProvider.saveBiometricToken();
+          debugPrint('LoginPage Debug: Đã gọi saveBiometricToken()');
+        } else {
+          // Nếu bỏ chọn "Nhớ tài khoản", xóa token cũ (nếu có)
+          await BiometricHelper.deleteCredentials();
+          debugPrint('LoginPage Debug: Đã xóa credentials do không chọn nhớ tài khoản');
         }
+
+        await VibrationService.vibrate(VibrationType.light);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                const Text("Đăng nhập thành công!"),
+              children: const [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text("Đăng nhập thành công!"),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+
+        // Điều hướng theo role
+        final route = AppRouter.getHomeRouteByRole(authProvider.role);
+        context.go(route);
+
+      } else {
+        // Hiển thị lỗi từ AuthProvider
+        final errorMessage = authProvider.errorMessage ?? "Lỗi không xác định";
+        ScaffoldMessenger.of(context).showSnackBar(_buildErrorSnackBar(errorMessage));
       }
     } catch (e) {
       if (!mounted) return;
+      // Hiển thị lỗi catch (nếu có)
       final errorMessage = authProvider.errorMessage ?? e.toString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  errorMessage,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(_buildErrorSnackBar(errorMessage));
     }
+  }
+
+  SnackBar _buildErrorSnackBar(String message) {
+    return SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.error, color: Colors.white),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 4),
+    );
   }
 
   void _onForgotPasswordPressed() {
@@ -144,7 +184,6 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.softBlack : AppColors.softWhite;
-    final cardColor = isDark ? AppColors.darkBackground : AppColors.background;
     final textColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
 
     return Scaffold(
@@ -153,7 +192,23 @@ class _LoginPageState extends State<LoginPage> {
         child: Consumer<AuthProvider>(
           builder: (context, authProvider, child) {
             final isLoading = authProvider.isLoading;
-            return SingleChildScrollView(  // Để tránh overflow trên màn hình nhỏ
+
+            // Xử lý điều hướng nếu người dùng đã login và ở trang này
+            if (authProvider.isAuthenticated && authProvider.isInitialCheckComplete) {
+              final route = AppRouter.getHomeRouteByRole(authProvider.role);
+
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final currentPath = GoRouterState.of(context).uri.toString();
+
+                // Nếu đường dẫn hiện tại là '/login'
+                if (currentPath == '/login') {
+                  context.go(route);
+                }
+              });
+              return const SizedBox.shrink();
+            }
+
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -183,10 +238,10 @@ class _LoginPageState extends State<LoginPage> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: _inputDecoration('Email hoặc username', Icons.email_outlined),
+                          decoration: _inputDecoration('Email', Icons.email_outlined),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Vui lòng nhập email hoặc username';
+                              return 'Vui lòng nhập email';
                             }
                             return null;
                           },
@@ -226,7 +281,7 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           Checkbox(
                             value: _rememberMe,
-                            onChanged: (value) {
+                            onChanged: isLoading ? null : (value) {
                               setState(() => _rememberMe = value!);
                             },
                             activeColor: AppColors.primary,
@@ -235,7 +290,7 @@ class _LoginPageState extends State<LoginPage> {
                         ],
                       ),
                       TextButton(
-                        onPressed: _onForgotPasswordPressed,
+                        onPressed: isLoading ? null : _onForgotPasswordPressed,
                         child: Text(
                           'Quên mật khẩu?',
                           style: TextStyle(color: AppColors.primary),
@@ -255,7 +310,7 @@ class _LoginPageState extends State<LoginPage> {
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text('Đăng nhập', style: TextStyle(fontSize: 18, color: Colors.white)),
                   ),
-                  if (_canUseBiometric) ...[  // Mới: Thêm nút biometric nếu khả dụng
+                  if (_canUseBiometric) ...[
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: isLoading ? null : _onBiometricLogin,
@@ -337,25 +392,20 @@ class _LoginPageState extends State<LoginPage> {
       prefixIcon: Icon(icon, color: isDark ? AppColors.secondary : AppColors.primary),
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!)),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!)),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.primary, width: 2),
-      ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary, width: 2)),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1),
-      ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 1)),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       filled: true,
       fillColor: isDark ? AppColors.softBlack : Colors.white,

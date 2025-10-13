@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
-
 class ServiceChip extends StatelessWidget {
   final String name;
   final String color;
@@ -17,11 +15,7 @@ class ServiceChip extends StatelessWidget {
   /// Phân tích chuỗi hex màu thành đối tượng Color.
   /// Hỗ trợ các định dạng: "RRGGBB", "#RRGGBB", "AARRGGBB", "#AARRGGBB".
   Color _parseColor(String hexColorString) {
-    // Thêm dòng print để debug (xóa hoặc comment lại khi deploy)
-    // print("ServiceChip: Parsing color '$hexColorString' for service '$name'");
-
     if (hexColorString.isEmpty) {
-      // print("ServiceChip: Empty hex string, returning grey.");
       return Colors.grey.shade400; // Màu xám nhạt nếu chuỗi rỗng
     }
 
@@ -35,34 +29,28 @@ class ServiceChip extends StatelessWidget {
 
     if (hex.length == 8) { // AARRGGBB
       try {
-        final Color parsed = Color(int.parse("0x$hex"));
-        // print("ServiceChip: Parsed '$hexColorString' to $parsed");
-        return parsed;
+        return Color(int.parse("0x$hex"));
       } catch (e) {
-        // print("ServiceChip: Error parsing hex '$hexColorString': $e. Returning grey.");
         return Colors.grey.shade600; // Màu xám đậm hơn nếu lỗi parse
       }
     }
 
-    // print("ServiceChip: Invalid hex length for '$hexColorString', returning grey.");
     return Colors.grey; // Màu xám mặc định nếu định dạng không hợp lệ
   }
 
   /// Xác định màu chữ dựa trên độ sáng của màu nền để đảm bảo độ tương phản.
-  Color _getTextColorForBackground(Color backgroundColor) {
-    // Tính toán độ sáng của màu. Giá trị từ 0 (đen) đến 1 (trắng).
-    // Ngưỡng 0.5 thường được sử dụng để phân biệt màu sáng và tối.
-    // Một số người dùng ngưỡng 0.6 hoặc 0.7 cho kết quả tốt hơn.
+  Color _getTextColorForBackground(Color backgroundColor, Brightness brightness) {
     if (backgroundColor.computeLuminance() > 0.6) {
-      return AppColors.textPrimary; // Chữ tối trên nền sáng
+      return brightness == Brightness.dark ? Colors.white70 : Colors.black87; // Điều chỉnh theo brightness
     }
-    return AppColors.softWhite; // Chữ trắng trên nền tối
+    return brightness == Brightness.dark ? Colors.white : Colors.black54;
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final Color chipColor = _parseColor(color); // `color` là chuỗi hex từ constructor
-    final Color textColor = _getTextColorForBackground(chipColor);
+    final textColor = _getTextColorForBackground(chipColor, theme.brightness);
 
     return Chip(
       backgroundColor: chipColor, // QUAN TRỌNG: Sử dụng màu đã parse

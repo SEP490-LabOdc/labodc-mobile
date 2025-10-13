@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../features/auth/data/data_sources/FakeAuthRemoteDataSource.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
 import '../theme/data/repository/theme_repository_impl.dart';
@@ -21,43 +20,41 @@ import '../../features/user/domain/use_cases/get_user_profile.dart';
 
 final getIt = GetIt.instance;
 
-Future<void> init({bool useFakeAuth = true}) async {
-  // SharedPreferences
+Future<void> init() async {
+  // --- SharedPreferences ---
   final sharedPrefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPrefs);
 
-  // Theme
+  // --- Theme ---
   getIt.registerSingleton(ThemeLocalDatasource(sharedPreferences: getIt()));
   getIt.registerSingleton<ThemeRepository>(
-      ThemeRepositoryImpl(themeLocalDatasource: getIt()));
+    ThemeRepositoryImpl(themeLocalDatasource: getIt()),
+  );
   getIt.registerSingleton(GetThemeUseCase(themeRepository: getIt()));
   getIt.registerSingleton(SaveThemeUseCase(themeRepository: getIt()));
   getIt.registerFactory(
-          () => ThemeBloc(getThemeUseCase: getIt(), saveThemeUseCase: getIt()));
+        () => ThemeBloc(getThemeUseCase: getIt(), saveThemeUseCase: getIt()),
+  );
 
-  // Auth
-  if (useFakeAuth) {
-    // 🔹 Fake login
-    getIt.registerLazySingleton<FakeAuthRemoteDataSource>(
-            () => FakeAuthRemoteDataSource());
-    getIt.registerLazySingleton<AuthRepository>(
-            () => AuthRepositoryImpl(remoteDataSource: getIt<FakeAuthRemoteDataSource>()));
-  } else {
-    // 🔹 API thật
-    getIt.registerLazySingleton<AuthRemoteDataSource>(
-            () => AuthRemoteDataSource());
-    // getIt.registerLazySingleton<AuthRepository>(
-    //         () => AuthRepositoryImpl(remoteDataSource: getIt<AuthRemoteDataSource>()));
-  }
-
+  // --- Auth ---
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+        () => AuthRemoteDataSource(),
+  );
+  getIt.registerLazySingleton<AuthRepository>(
+        () => AuthRepositoryImpl(remoteDataSource: getIt<AuthRemoteDataSource>()),
+  );
   getIt.registerLazySingleton<LoginUseCase>(
-          () => LoginUseCase(getIt<AuthRepository>()));
+        () => LoginUseCase(getIt<AuthRepository>()),
+  );
 
-  // User
+  // --- User ---
   getIt.registerLazySingleton<UserRemoteDataSource>(
-          () => UserRemoteDataSource());
+        () => UserRemoteDataSource(),
+  );
   getIt.registerLazySingleton<UserRepository>(
-          () => UserRepositoryImpl(remoteDataSource: getIt()));
+        () => UserRepositoryImpl(remoteDataSource: getIt()),
+  );
   getIt.registerLazySingleton<GetUserProfile>(
-          () => GetUserProfile(getIt<UserRepository>()));
+        () => GetUserProfile(getIt<UserRepository>()),
+  );
 }

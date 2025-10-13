@@ -12,7 +12,7 @@ class MentorProfilePage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Handle settings
+              // Navigate to settings page
             },
           ),
         ],

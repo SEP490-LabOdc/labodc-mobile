@@ -15,7 +15,7 @@ class AppTheme {
     brightness: Brightness.light,
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.softWhite,
-    fontFamily: 'YourFontFamily',
+    fontFamily: 'Roboto',
 
     colorScheme: const ColorScheme.light(
       primary: AppColors.primary,

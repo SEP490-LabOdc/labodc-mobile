@@ -1,9 +1,5 @@
-// lib/shared/widgets/network_image_with_fallback.dart
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
-import '../../core/theme/app_colors.dart';
-
 
 class NetworkImageWithFallback extends StatelessWidget {
   final String imageUrl;
@@ -29,13 +25,14 @@ class NetworkImageWithFallback extends StatelessWidget {
     this.borderRadius,
   });
 
-  Widget _buildErrorWidget() {
+  Widget _buildErrorWidget(BuildContext context) {
+    final theme = Theme.of(context);
     Widget errorContent;
     if (fallbackIcon != null) {
       errorContent = Icon(
         fallbackIcon,
         size: fallbackIconSize ?? (width != null && height != null ? (width! < height! ? width! * 0.5 : height! * 0.5) : 40.0),
-        color: fallbackIconColor ?? Colors.grey[400],
+        color: fallbackIconColor ?? theme.colorScheme.onSurfaceVariant,
       );
     } else {
       errorContent = Image.asset(
@@ -43,44 +40,46 @@ class NetworkImageWithFallback extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        // Optional: Add error builder for the asset itself if it might fail
-        // errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image, size: 40, color: Colors.grey[400]),
       );
     }
 
     return Container(
       width: width,
       height: height,
-      color: Colors.grey[200], // A light background for the fallback
+      color: theme.colorScheme.surfaceVariant, // Thay bằng màu từ theme
       alignment: Alignment.center,
       child: errorContent,
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: width,
       height: height,
-      color: Colors.grey[200], // A light background for the placeholder
+      color: theme.colorScheme.surfaceVariant, // Thay bằng màu từ theme
       alignment: Alignment.center,
-      child: const CircularProgressIndicator(strokeWidth: 2.0, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),),
+      child: CircularProgressIndicator(
+        strokeWidth: 2.0,
+        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+      ),
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     Widget imageWidget;
     if (imageUrl.isEmpty) {
-      imageWidget = _buildErrorWidget();
+      imageWidget = _buildErrorWidget(context);
     } else {
       imageWidget = CachedNetworkImage(
         imageUrl: imageUrl,
         width: width,
         height: height,
         fit: fit,
-        placeholder: (context, url) => _buildPlaceholder(),
-        errorWidget: (context, url, error) => _buildErrorWidget(),
+        placeholder: (context, url) => _buildPlaceholder(context),
+        errorWidget: (context, url, error) => _buildErrorWidget(context),
       );
     }
 

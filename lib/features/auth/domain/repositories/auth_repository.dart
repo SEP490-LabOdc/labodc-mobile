@@ -1,5 +1,7 @@
 import '../entities/auth_entity.dart';
 
 abstract class AuthRepository {
-  Future<AuthEntity> login(String username, String password);
+  Future<AuthEntity> login(String email, String password);
+
+  Future<AuthEntity> refreshToken(String refreshToken, String userId);
 }

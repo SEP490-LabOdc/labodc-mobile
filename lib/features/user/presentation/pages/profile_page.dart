@@ -19,8 +19,8 @@ class ProfilePage extends StatelessWidget {
             : userProvider.user == null
             ? ElevatedButton(
           onPressed: () {
-            if (auth.token != null) {
-              userProvider.fetchProfile(auth.token!);
+            if (auth.accessToken != null) {
+              userProvider.fetchProfile(auth.accessToken!);
             }
           },
           child: const Text("Load Profile"),

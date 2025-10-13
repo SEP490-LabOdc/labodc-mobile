@@ -1,8 +1,14 @@
+// main.dart
+import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+//  Core Config
+import 'core/config/notifications/fcm_service.dart';
 import 'core/get_it/get_it.dart';
 import 'core/router/app_router.dart';
 import 'core/config/networks/env.dart';
@@ -12,6 +18,10 @@ import 'core/theme/bloc/theme_events.dart';
 import 'core/theme/bloc/theme_state.dart';
 import 'core/theme/domain/entity/theme_entity.dart';
 
+//  Rung / Vibration
+import 'core/services/vibration/vibration_cubit.dart';
+
+//  Features
 import 'features/auth/domain/use_cases/login_use_case.dart';
 import 'features/auth/presentation/provider/auth_provider.dart';
 import 'features/user/domain/use_cases/get_user_profile.dart';
@@ -20,11 +30,12 @@ import 'features/user/presentation/provider/user_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment config
   await Env.load();
+  await Firebase.initializeApp();
 
-  // Initialize dependency injection
-  await init(useFakeAuth: true);
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  await init();
 
   runApp(
     MultiProvider(
@@ -36,12 +47,36 @@ Future<void> main() async {
           create: (_) => UserProvider(getUserProfile: getIt<GetUserProfile>()),
         ),
       ],
-      child: BlocProvider(
-        create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent()),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent())),
+          BlocProvider(create: (_) => VibrationCubit()..load()),
+        ],
         child: const LabOdcApp(),
       ),
     ),
   );
+
+  _bootstrapFcmNonBlocking();
+}
+
+/// Hàm khởi tạo FCM mà không chặn giao diện
+void _bootstrapFcmNonBlocking() {
+  Future.microtask(() async {
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+    } catch (_) {}
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await FcmService.init().timeout(const Duration(seconds: 12));
+      } on TimeoutException {
+        debugPrint('[FCM] ⚠️ init timeout');
+      } catch (e, st) {
+        debugPrint('[FCM] ❌ init error: $e\n$st');
+      }
+    });
+  });
 }
 
 class LabOdcApp extends StatelessWidget {

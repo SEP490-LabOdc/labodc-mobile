@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // Thêm để dùng debugPrint
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/router/app_router.dart';
+import '../../../../core/router/route_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/bloc/theme_bloc.dart';
 import '../../../../core/theme/bloc/theme_state.dart';
@@ -12,9 +14,8 @@ import '../../../auth/presentation/provider/auth_provider.dart';
 import '../../../auth/presentation/utils/biometric_helper.dart';
 
 class SplashPage extends StatefulWidget {
-  final Future<void> Function()? onFinish;
-
-  const SplashPage({super.key, this.onFinish});
+  // Đã xóa onFinish
+  const SplashPage({super.key});
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -28,13 +29,11 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // Khởi tạo animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    // Tạo hiệu ứng fade-in
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -42,75 +41,72 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       ),
     );
 
-    // Bắt đầu animation
-    _animationController.forward();
-
-    // Kiểm tra biometric và credentials ngay sau khi frame đầu tiên được vẽ
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-
-      final authProvider = context.read<AuthProvider>();
-      final bool isBiometricAvailable = await BiometricHelper.isBiometricAvailable();
-      final credentials = await BiometricHelper.getCredentials();
-
-      if (isBiometricAvailable && credentials != null && !authProvider.isAuthenticated) {
-        // Hiển thị dialog hỏi người dùng
-        final loginMethod = await _showLoginMethodDialog();
-        if (!mounted) return;
-
-        if (loginMethod == 'biometric') {
-          // Xử lý đăng nhập bằng vân tay
-          final authenticated = await BiometricHelper.authenticate();
-          if (authenticated) {
-            final success = await authProvider.loginWithBiometric();
-            if (success) {
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Đăng nhập bằng vân tay thành công!'),
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-              // Điều hướng theo role
-              final route = AppRouter.getHomeRouteByRole(authProvider.role);
-              context.go(route);
-            } else {
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Đăng nhập thất bại!'),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-              context.go('/login');
-            }
-          } else {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Xác thực vân tay thất bại!'),
-                backgroundColor: Colors.orange,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            context.go('/login');
-          }
-        } else {
-          // Người dùng chọn đăng nhập thủ công
-          context.go('/login');
-        }
-      } else {
-        // Không có biometric hoặc credentials, chạy logic onFinish
-        if (widget.onFinish != null) {
-          await widget.onFinish!();
-        }
-      }
-    });
+    _startInitialCheckAndNavigate();
   }
 
-  // Hiển thị dialog hỏi người dùng muốn đăng nhập bằng cách nào
+  // LOGIC ĐIỀU HƯỚNG CHÍNH
+  void _startInitialCheckAndNavigate() async {
+    debugPrint('SplashPage: Bắt đầu _startInitialCheckAndNavigate.');
+    _animationController.forward();
+
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    if (!mounted) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // BƯỚC 1: CHỜ AuthProvider HOÀN TẤT VIỆC KIỂM TRA TRẠNG THÁI
+    if (!authProvider.isInitialCheckComplete) {
+      debugPrint('SplashPage: AuthProvider chưa hoàn tất. Bắt đầu chờ...');
+      await Future.doWhile(() async {
+        await Future.delayed(const Duration(milliseconds: 50));
+        return !authProvider.isInitialCheckComplete;
+      });
+      debugPrint('SplashPage: AuthProvider đã hoàn tất việc chờ.');
+    }
+
+    debugPrint('SplashPage: Trạng thái cuối cùng: isAuthenticated: ${authProvider.isAuthenticated}, Role: ${authProvider.role}');
+
+    // BƯỚC 2: Điều hướng nếu đã xác thực
+    if (authProvider.isAuthenticated) {
+      final route = AppRouter.getHomeRouteByRole(authProvider.role);
+      debugPrint('SplashPage: Đã xác thực. Chuyển hướng đến $route');
+      context.go(route);
+      return;
+    }
+
+    // BƯỚC 3: Xử lý Biometric Prompt nếu token có sẵn nhưng loadAuthState thất bại
+    final bool isBiometricAvailable = await BiometricHelper.isBiometricAvailable();
+    final authToken = await BiometricHelper.getAuthToken();
+
+    if (authToken != null && isBiometricAvailable) {
+      debugPrint('SplashPage: Chưa xác thực, nhưng có token và Biometric khả dụng. Hiển thị dialog.');
+      final loginMethod = await _showLoginMethodDialog();
+      if (!mounted) return;
+
+      if (loginMethod == 'biometric') {
+        final authenticated = await BiometricHelper.authenticate();
+        if (authenticated) {
+          final success = await authProvider.loginWithBiometric();
+          if (success) {
+            final route = AppRouter.getHomeRouteByRole(authProvider.role);
+            debugPrint('SplashPage: Biometric thành công. Chuyển hướng đến $route');
+            context.go(route);
+            return;
+          }
+        }
+      }
+      debugPrint('SplashPage: Biometric thất bại/bị từ chối/Manual. Chuyển hướng đến ${Routes.login}');
+      context.go(Routes.login);
+      return;
+    }
+
+    // BƯỚC CUỐI: Chưa xác thực và không có Token/Biometric.
+    debugPrint('SplashPage: Chưa xác thực và không có token. Chuyển hướng đến ${Routes.home}');
+    context.go(Routes.home);
+  }
+
+
   Future<String?> _showLoginMethodDialog() async {
     return showDialog<String>(
       context: context,
@@ -139,9 +135,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // Watch AuthProvider để rebuild khi trạng thái load thay đổi
+    final authProvider = context.watch<AuthProvider>();
+
     return BlocBuilder<ThemeBloc, ThemeState>(
-      builder: (context, state) {
-        final isLight = state.themeEntity?.themeType == ThemeType.light;
+      builder: (context, themeState) {
+        final isLight = themeState.themeEntity?.themeType == ThemeType.light;
+        final bool shouldShowSpinner = !authProvider.isInitialCheckComplete;
 
         return Scaffold(
           backgroundColor: isLight ? AppColors.softWhite : AppColors.darkBackground,
@@ -151,7 +151,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
+                  // ... (UI giữ nguyên)
                   Container(
                     width: 150,
                     height: 150,
@@ -177,7 +177,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // Tên ứng dụng
                   Text(
                     'LabODC',
                     style: TextStyle(
@@ -188,11 +187,12 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 16),
                   // Loading indicator
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      isLight ? AppColors.primary : AppColors.darkPrimary,
+                  if (shouldShowSpinner)
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isLight ? AppColors.primary : AppColors.darkPrimary,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
