@@ -9,7 +9,7 @@ class TasksPage extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Nhiệm vụ của bạn 📝"),
+          title: const Text("Nhiệm vụ",style: TextStyle(fontWeight: FontWeight.bold)),
           bottom: const TabBar(
             tabs: [
               Tab(text: "To Do (5)"),

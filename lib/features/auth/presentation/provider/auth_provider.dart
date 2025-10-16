@@ -1,6 +1,7 @@
 // lib/features/auth/presentation/provider/auth_provider.dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import '../../../../core/error/failures.dart'; // THÊM IMPORT FAILURE
 import '../../domain/entities/auth_entity.dart';
 import '../../domain/use_cases/login_use_case.dart';
 import '../utils/biometric_helper.dart';
@@ -12,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   bool _loading = false;
   String? _error;
   bool _isInitialCheckComplete = false;
+  bool _hasAttemptedLoad = false;
 
   AuthProvider({required this.loginUseCase}) {
     debugPrint('AuthProvider: Khởi tạo. Bắt đầu loadAuthState.');
@@ -29,98 +31,112 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _auth != null;
   bool get isInitialCheckComplete => _isInitialCheckComplete;
 
-  // MỚI/SỬA: Logic tải trạng thái
+  // Logic tải trạng thái đăng nhập ban đầu
   Future<void> loadAuthState() async {
-    final authData = await BiometricHelper.getAuthData();
-
-    if (authData != null) {
-      // 💡 DEBUG LOG: KIỂM TRA REFRESH TOKEN VÀ USER ID ĐÃ LƯU
-      debugPrint('AuthProvider Debug: TÌM THẤY Refresh Token. Token: ${authData['refreshToken']!.substring(0, 10)}... | UserID: ${authData['userId']}');
-
-      try {
-        final authRepository = loginUseCase.repository;
-        // Thực hiện Refresh Token
-        _auth = await authRepository.refreshToken(
-          authData['refreshToken']!,
-          authData['userId']!,
-        );
-
-        _error = null;
-        debugPrint('AuthProvider Debug: Refresh Token THÀNH CÔNG. IsAuthenticated: true, Role: ${_auth?.role}');
-
-      } catch (e) {
-        _auth = null;
-        _error = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại. Lỗi: ${e.toString()}";
-        BiometricHelper.deleteCredentials();
-        // 💡 DEBUG LOG: REFRESH THẤT BẠI
-        debugPrint('AuthProvider Debug: Refresh Token THẤT BẠI. Xóa Credentials. Lỗi: $e');
-      }
-    } else {
-      debugPrint('AuthProvider Debug: KHÔNG tìm thấy Refresh Token đã lưu.');
-    }
-
-    _isInitialCheckComplete = true;
+    if (_hasAttemptedLoad) return;
+    _hasAttemptedLoad = true;
+    _loading = true;
     notifyListeners();
+
+    try {
+      final authData = await BiometricHelper.getAuthData();
+      if (authData != null) {
+        debugPrint('AuthProvider Debug: TÌM THẤY Refresh Token. Bắt đầu Refresh.');
+        final authRepository = loginUseCase.repository;
+        _auth = await authRepository.refreshToken(authData['refreshToken']!, authData['userId']!);
+        debugPrint('AuthProvider Debug: Refresh Token THÀNH CÔNG. Role: ${_auth?.role}');
+      } else {
+        debugPrint('AuthProvider Debug: Không tìm thấy Refresh Token.');
+      }
+    } on Failure catch (f) { // CATCH FAILURE TẠI ĐÂY
+      debugPrint('AuthProvider Debug: Refresh Token THẤT BẠI. Xóa Credentials. Lỗi: ${f.message}');
+      BiometricHelper.deleteCredentials();
+      _auth = null;
+      _error = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+    } catch (e) {
+      // Bắt các lỗi khác (chủ yếu là lỗi lập trình)
+      debugPrint('AuthProvider Debug: Refresh Token THẤT BẠI. Lỗi không xác định: $e');
+      BiometricHelper.deleteCredentials();
+      _auth = null;
+      _error = "Lỗi hệ thống khi tải trạng thái. Vui lòng khởi động lại ứng dụng.";
+    } finally {
+      _isInitialCheckComplete = true;
+      _loading = false;
+      debugPrint('AuthProvider Debug: Load Auth State HOÀN TẤT. isAuthenticated: $isAuthenticated');
+      notifyListeners();
+    }
   }
 
-  // ... (login) ...
-  Future<bool> login(String email, String password) async {
+  // ✅ ĐÃ SỬA: Khắc phục lỗi "might complete normally" bằng cách return false ở cuối
+  Future<bool> login(String email, String password, bool rememberMe) async {
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
       _auth = await loginUseCase.call(email, password);
-      _error = null;
+
+      if (rememberMe && _auth != null) {
+        await BiometricHelper.saveAuthData(_auth!.refreshToken, _auth!.userId);
+      } else if (!rememberMe) {
+        await BiometricHelper.deleteCredentials();
+      }
+
+      _loading = false;
       debugPrint('AuthProvider: Login thủ công thành công. Role: ${_auth?.role}');
       notifyListeners();
-      return true;
+      return true; // THÀNH CÔNG: return true
+
+    } on UnAuthorizedFailure {
+      _error = "Sai tài khoản hoặc mật khẩu.";
+    } on InvalidInputFailure catch (f) {
+      _error = f.message;
+    } on NetworkFailure catch (f) {
+      _error = f.message;
+    } on ServerFailure {
+      _error = "Hệ thống đang bảo trì, vui lòng thử lại sau.";
+    } on Failure catch (f) {
+      _error = f.message;
     } catch (e) {
-      _error = e.toString();
-      debugPrint('AuthProvider: Login thủ công THẤT BẠI. Lỗi: $e');
-      notifyListeners();
-      return false;
-    } finally {
-      _loading = false;
-      notifyListeners();
+      _error = "Lỗi không xác định: Vui lòng liên hệ hỗ trợ.";
     }
+
+    // LOGIC CHUNG CHO THẤT BẠI: Dọn dẹp trạng thái và return false
+    _auth = null;
+    _loading = false;
+    debugPrint('AuthProvider: Login thủ công THẤT BẠI. Lỗi: $_error');
+    notifyListeners();
+    return false; // THẤT BẠI: return false
   }
 
-  // ... (loginWithBiometric) ...
+  // ✅ LOGIC ĐĂNG NHẬP BẰNG BIOMETRIC (giữ nguyên logic đã có)
   Future<bool> loginWithBiometric() async {
     final authData = await BiometricHelper.getAuthData();
-    if (authData == null) return false;
+    if (authData == null) {
+      _error = "Dữ liệu đăng nhập sinh trắc học không tìm thấy.";
+      return false;
+    }
 
     _loading = true;
+    _error = null;
     notifyListeners();
 
     try {
       final authRepository = loginUseCase.repository;
       _auth = await authRepository.refreshToken(authData['refreshToken']!, authData['userId']!);
 
-      _error = null;
+      _loading = false;
       debugPrint('AuthProvider: Login Biometric thành công. Role: ${_auth?.role}');
       notifyListeners();
       return true;
-    } catch (e) {
+    } on Failure {
       _error = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.";
       BiometricHelper.deleteCredentials();
-      debugPrint('AuthProvider: Login Biometric THẤT BẠI. Lỗi: $e');
-      notifyListeners();
+      _auth = null;
       return false;
     } finally {
       _loading = false;
       notifyListeners();
-    }
-  }
-
-  // MỚI/SỬA: Logic lưu token
-  Future<void> saveBiometricToken() async {
-    if (_auth != null) {
-      // 💡 DEBUG LOG: XÁC NHẬN LƯU TOKEN
-      debugPrint('AuthProvider Debug: Bắt đầu LƯU token an toàn. Token: ${_auth!.refreshToken.substring(0, 10)}...');
-      await BiometricHelper.saveAuthData(_auth!.refreshToken, _auth!.userId);
-      debugPrint('AuthProvider Debug: LƯU token an toàn THÀNH CÔNG.');
     }
   }
 

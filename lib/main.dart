@@ -1,4 +1,4 @@
-// main.dart
+// lib/main.dart
 import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -24,8 +24,7 @@ import 'core/services/vibration/vibration_cubit.dart';
 //  Features
 import 'features/auth/domain/use_cases/login_use_case.dart';
 import 'features/auth/presentation/provider/auth_provider.dart';
-import 'features/user/domain/use_cases/get_user_profile.dart';
-import 'features/user/presentation/provider/user_provider.dart';
+import 'features/talent/presentation/cubit/talent_profile_cubit.dart'; // Import đúng Cubit
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,20 +36,23 @@ Future<void> main() async {
 
   await init();
 
+  final authProvider = AuthProvider(loginUseCase: getIt<LoginUseCase>());
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(loginUseCase: getIt<LoginUseCase>()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(getUserProfile: getIt<GetUserProfile>()),
-        ),
+        ChangeNotifierProvider(create: (_) => authProvider),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent())),
           BlocProvider(create: (_) => VibrationCubit()..load()),
+          // ✅ ĐÃ SỬA: Sử dụng TalentProfileCubit (đã đăng ký trong GetIt)
+          BlocProvider(
+            create: (context) => getIt<TalentProfileCubit>(
+              param1: Provider.of<AuthProvider>(context, listen: false),
+            ),
+          ),
         ],
         child: const LabOdcApp(),
       ),

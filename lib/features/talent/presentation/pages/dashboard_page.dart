@@ -1,11 +1,14 @@
 // features/talent/presentation/pages/dashboard_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:labodc_mobile/core/theme/app_colors.dart';
 
-import '../../../../shared/widgets/project_card.dart';
-import '../../../../shared/widgets/reusable_card.dart';
-import '../../../../shared/widgets/activity_item.dart';
+// Import các widget con đã tách
+import '../widgets/dashboard_header.dart';
+import '../widgets/dashboard_statistics.dart';
+import '../widgets/dashboard_projects.dart';
+import '../widgets/dashboard_tasks.dart';
+import '../widgets/dashboard_activities.dart';
+import '../widgets/dashboard_quick_actions.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -15,7 +18,81 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  // ✅ (Tạm thời) Giữ biến local, sau này thay bằng Cubit/Bloc
   int unreadNotifications = 3;
+
+  Future<void> _refreshData() async {
+    // Logic tải lại dữ liệu từ server ở đây (Ví dụ: fetch projects, fetch tasks...)
+    await Future.delayed(const Duration(seconds: 1));
+    if(mounted) {
+      setState(() {
+        // Ví dụ: giảm số thông báo chưa đọc sau khi refresh
+        unreadNotifications = 0;
+      });
+    }
+  }
+
+  void _showNotificationBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, controller) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    height: 5,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      "Thông báo",
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView(
+                      controller: controller,
+                      padding: EdgeInsets.zero,
+                      children: const [
+                        ListTile(title: Text("Dự án mới: UX/UI cho ứng dụng Mobile"), subtitle: Text("2 giờ trước")),
+                        ListTile(title: Text("Thanh toán thành công"), subtitle: Text("1 ngày trước")),
+                        ListTile(title: Text("Cảnh báo: Hạn chót dự án A sắp đến"), subtitle: Text("12 giờ trước")),
+                        ListTile(title: Text("Cảnh báo: Hạn chót dự án A sắp đến"), subtitle: Text("1 ngày trước")),
+                        ListTile(title: Text("Cảnh báo: Hạn chót dự án A sắp đến"), subtitle: Text("2 ngày trước")),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // Sau khi đóng bottom sheet, cập nhật số thông báo (tạm thời)
+      setState(() {
+        unreadNotifications = 0;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +101,9 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text("Talent Dashboard"),
+        title: const Text(
+            "Talent Dashboard",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         elevation: 0,
@@ -67,6 +146,7 @@ class _DashboardPageState extends State<DashboardPage> {
           child: AnimationLimiter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              // ✅ ĐÃ SỬA: Dùng AnimationConfiguration.toStaggeredList
               children: AnimationConfiguration.toStaggeredList(
                 duration: const Duration(milliseconds: 400),
                 childAnimationBuilder: (widget) => SlideAnimation(
@@ -74,17 +154,17 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: FadeInAnimation(child: widget),
                 ),
                 children: [
-                  _buildWelcomeSection(theme),
+                  DashboardHeader(theme: theme), // ✅ Widget đã tách
                   const SizedBox(height: 20),
-                  _buildStatisticsSection(),
+                  const DashboardStatistics(), // ✅ Widget đã tách
                   const SizedBox(height: 24),
-                  _buildProjectsSection(),
+                  const DashboardProjects(), // ✅ Widget đã tách
                   const SizedBox(height: 24),
-                  _buildTasksSection(),
+                  const DashboardTasks(), // ✅ Widget đã tách
                   const SizedBox(height: 24),
-                  _buildActivitiesSection(),
+                  const DashboardActivities(), // ✅ Widget đã tách
                   const SizedBox(height: 24),
-                  _buildQuickActionsSection(),
+                  const DashboardQuickActions(), // ✅ Widget đã tách
                 ],
               ),
             ),
@@ -92,166 +172,5 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       ),
     );
-  }
-
-  Widget _buildWelcomeSection(ThemeData theme) {
-    return ReusableCard(
-      padding: const EdgeInsets.all(20),
-      gradient: LinearGradient(
-        colors: [
-          theme.colorScheme.primary.withOpacity(0.85),
-          theme.colorScheme.primary,
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.wb_sunny, color: Colors.white, size: 24),
-              SizedBox(width: 8),
-              Text(
-                "Chào buổi sáng, Talent! 👋",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Hôm nay bạn có 3 task cần hoàn thành",
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatisticsSection() {
-    return const SectionCard(
-      title: "📊 Tổng quan",
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
-                  title: "Dự án tham gia",
-                  value: "8",
-                  subtitle: "Tổng cộng",
-                  icon: Icons.folder_outlined,
-                  color: Colors.blue,
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: StatCard(
-                  title: "Đang hoạt động",
-                  value: "3",
-                  subtitle: "Dự án",
-                  icon: Icons.trending_up,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProjectsSection() {
-    return SectionCard(
-      title: "🚀 Dự án đang tham gia",
-      actions: [TextButton(onPressed: () {}, child: const Text("Xem tất cả"))],
-      child: Column(
-        children: [
-          ProjectCard(
-            projectName: "E-commerce Platform",
-            companyName: "ABC Corp",
-            progress: 0.75,
-            role: "Frontend Developer",
-            deadline: "5 ngày",
-            status: "active",
-            onTap: () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTasksSection() {
-    return SectionCard(
-      title: "📌 Task hôm nay",
-      child: Column(
-        children: [
-          TaskCard(
-            title: "[URGENT] Fix login bug on iOS",
-            description: "high",
-            dueTime: "2 giờ",
-            // isCompleted: false,
-            color: AppColors.accent,
-            // onTap: () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivitiesSection() {
-    return SectionCard(
-      title: "📝 Hoạt động gần đây",
-      child: Column(
-        children: const [
-          ActivityItem(
-            icon: Icons.check_circle,
-            subtitle: "...",
-            color: Colors.green,
-            title: "Task 'Login UI' đã được duyệt",
-            time: "5 phút trước",
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsSection() {
-    return SectionCard(
-      title: "⚡ Thao tác nhanh",
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          QuickActionCard(
-            icon: Icons.chat_bubble_outline,
-            title: "Tin nhắn",
-            subtitle: "3 tin mới",
-            color: Colors.blue,
-            onTap: () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==== NOTIFICATION BOTTOM SHEET ====
-  void _showNotificationBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => const Center(child: Text("Thông báo")),
-    );
-  }
-
-  Future<void> _refreshData() async {
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {});
   }
 }

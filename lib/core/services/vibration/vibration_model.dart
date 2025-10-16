@@ -5,4 +5,6 @@ enum VibrationType {
   medium,
   strong,
   pattern,
+  success,
+  error,
 }

@@ -1,3 +1,5 @@
+// lib/features/auth/presentation/pages/splash_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // Thêm để dùng debugPrint
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,10 +13,9 @@ import '../../../../core/theme/bloc/theme_bloc.dart';
 import '../../../../core/theme/bloc/theme_state.dart';
 import '../../../../core/theme/domain/entity/theme_entity.dart';
 import '../../../auth/presentation/provider/auth_provider.dart';
-import '../../../auth/presentation/utils/biometric_helper.dart';
+// import '../../../auth/presentation/utils/biometric_helper.dart'; // Đã loại bỏ import không cần thiết
 
 class SplashPage extends StatefulWidget {
-  // Đã xóa onFinish
   const SplashPage({super.key});
 
   @override
@@ -49,6 +50,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     debugPrint('SplashPage: Bắt đầu _startInitialCheckAndNavigate.');
     _animationController.forward();
 
+    // Chờ animation và đảm bảo AuthProvider đã hoàn tất kiểm tra
     await Future.delayed(const Duration(milliseconds: 1200));
 
     if (!mounted) return;
@@ -75,57 +77,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       return;
     }
 
-    // BƯỚC 3: Xử lý Biometric Prompt nếu token có sẵn nhưng loadAuthState thất bại
-    final bool isBiometricAvailable = await BiometricHelper.isBiometricAvailable();
-    final authToken = await BiometricHelper.getAuthToken();
-
-    if (authToken != null && isBiometricAvailable) {
-      debugPrint('SplashPage: Chưa xác thực, nhưng có token và Biometric khả dụng. Hiển thị dialog.');
-      final loginMethod = await _showLoginMethodDialog();
-      if (!mounted) return;
-
-      if (loginMethod == 'biometric') {
-        final authenticated = await BiometricHelper.authenticate();
-        if (authenticated) {
-          final success = await authProvider.loginWithBiometric();
-          if (success) {
-            final route = AppRouter.getHomeRouteByRole(authProvider.role);
-            debugPrint('SplashPage: Biometric thành công. Chuyển hướng đến $route');
-            context.go(route);
-            return;
-          }
-        }
-      }
-      debugPrint('SplashPage: Biometric thất bại/bị từ chối/Manual. Chuyển hướng đến ${Routes.login}');
-      context.go(Routes.login);
-      return;
-    }
-
-    // BƯỚC CUỐI: Chưa xác thực và không có Token/Biometric.
-    debugPrint('SplashPage: Chưa xác thực và không có token. Chuyển hướng đến ${Routes.home}');
+    // BƯỚC CUỐI: Chưa xác thực. Chuyển hướng đến trang Home công cộng.
+    // Nếu người dùng cố gắng vào protected route sau đó, GoRouter sẽ chuyển họ đến /login.
+    debugPrint('SplashPage: Chưa xác thực. Chuyển hướng đến ${Routes.home}');
     context.go(Routes.home);
   }
 
-
-  Future<String?> _showLoginMethodDialog() async {
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Chọn cách đăng nhập'),
-        content: const Text('Bạn muốn đăng nhập bằng vân tay hay nhập thủ công?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'manual'),
-            child: const Text('Thủ công'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'biometric'),
-            child: const Text('Vân tay'),
-          ),
-        ],
-      ),
-    );
-  }
+  // Đã loại bỏ _showLoginMethodDialog
 
   @override
   void dispose() {
@@ -142,6 +100,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       builder: (context, themeState) {
         final isLight = themeState.themeEntity?.themeType == ThemeType.light;
         final bool shouldShowSpinner = !authProvider.isInitialCheckComplete;
+
+        // Chọn màu dựa trên theme
+        final Color primaryColor = isLight ? AppColors.primary : AppColors.darkPrimary;
 
         return Scaffold(
           backgroundColor: isLight ? AppColors.softWhite : AppColors.darkBackground,
@@ -189,9 +150,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                   // Loading indicator
                   if (shouldShowSpinner)
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isLight ? AppColors.primary : AppColors.darkPrimary,
-                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                     ),
                 ],
               ),

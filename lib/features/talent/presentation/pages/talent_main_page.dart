@@ -3,6 +3,7 @@ import 'package:labodc_mobile/features/talent/presentation/pages/profile_page.da
 import 'package:labodc_mobile/features/talent/presentation/pages/tasks_page.dart';
 
 import 'dashboard_page.dart';
+import 'explore_page.dart';
 
 
 class TalentMainPage extends StatefulWidget {
@@ -17,6 +18,7 @@ class _TalentMainPageState extends State<TalentMainPage> {
 
   final List<Widget> _pages = const [
     DashboardPage(),
+    ExplorePage(),
     TasksPage(),
     ProfilePage(),
   ];
@@ -31,6 +33,7 @@ class _TalentMainPageState extends State<TalentMainPage> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Khám phá'),
           BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Nhiệm vụ'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
         ],

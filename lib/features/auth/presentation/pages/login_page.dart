@@ -2,16 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart'; // Thêm để dùng debugPrint
+import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart'; // Thêm SchedulerBinding
 
 import '../../presentation/provider/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../utils/biometric_helper.dart';
 import '../../../../core/router/app_router.dart';
 
-// 🔔 Thêm: rung nhẹ khi đăng nhập thành công
+// 🔔 THAY ĐỔI: Import VibrationType (Giả định nó là Enum trong vibration_model.dart)
 import '../../../../core/services/vibration/vibration_service.dart';
-import '../../../../core/services/vibration/vibration_model.dart';
+import '../../../../core/services/vibration/vibration_model.dart'; // Chứa VibrationType Enum
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -32,7 +33,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // Kiểm tra Biometric ngay khi vào trang
     _checkBiometricAvailability();
   }
 
@@ -43,10 +43,21 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // Hàm hiển thị SnackBar
+  void _showSnackBar(String message, {bool isError = false}) {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red : Theme.of(context).primaryColor,
+        ),
+      );
+    });
+  }
+
   // CHUYÊN NGHIỆP: Kiểm tra biometric và sự tồn tại của Auth Token (Refresh Token)
   Future<void> _checkBiometricAvailability() async {
     final available = await BiometricHelper.isBiometricAvailable();
-    // Dùng getAuthData() để check sự tồn tại của token và userId
     final authData = await BiometricHelper.getAuthData();
 
     // Chỉ bật _canUseBiometric nếu thiết bị hỗ trợ VÀ đã có token/userId được lưu
@@ -57,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Xử lý login bằng biometric
+  // ✅ SỬA LOGIC: Xử lý login bằng biometric
   Future<void> _onBiometricLogin() async {
     final authenticated = await BiometricHelper.authenticate();
     if (!mounted) return;
@@ -69,30 +80,36 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (success) {
-        await VibrationService.vibrate(VibrationType.light);
+        // ✅ SỬA: Dùng VibrationType.success (đã được thêm vào enum trong bước trước)
+        await VibrationService.vibrate(VibrationType.success);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đăng nhập bằng vân tay thành công!'), backgroundColor: Colors.green),
         );
-
         // Điều hướng theo role
         final route = AppRouter.getHomeRouteByRole(authProvider.role);
         context.go(route);
 
       } else {
+        // ✅ SỬA: Dùng VibrationType.error
+        await VibrationService.vibrate(VibrationType.error);
+
         // Lỗi: Biometric thành công nhưng Refresh Token hết hạn/thất bại
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(authProvider.errorMessage ?? 'Phiên hết hạn, vui lòng đăng nhập thủ công.'), backgroundColor: Colors.red),
         );
       }
     } else {
+      // ✅ SỬA: Dùng VibrationType.error
+      await VibrationService.vibrate(VibrationType.error);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Xác thực vân tay thất bại!'), backgroundColor: Colors.orange),
       );
     }
   }
 
-  // Xử lý login thủ công
+  // ✅ SỬA LOGIC: Xử lý login thủ công
   void _onLoginPressed() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
@@ -102,23 +119,13 @@ class _LoginPageState extends State<LoginPage> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      final success = await authProvider.login(email, password);
+      // ✅ THAY ĐỔI LỚN: Gọi hàm login với cờ _rememberMe
+      final success = await authProvider.login(email, password, _rememberMe);
       if (!mounted) return;
 
       if (success) {
-        // CHUYÊN NGHIỆP: LƯU token an toàn nếu 'Nhớ tài khoản' được chọn
-        if (_rememberMe) {
-          // SỬA: Chỉ cần gọi saveBiometricToken() vì nó đã không còn nhận tham số
-          // và sẽ tự lấy _auth?.refreshToken và _auth?.userId
-          await authProvider.saveBiometricToken();
-          debugPrint('LoginPage Debug: Đã gọi saveBiometricToken()');
-        } else {
-          // Nếu bỏ chọn "Nhớ tài khoản", xóa token cũ (nếu có)
-          await BiometricHelper.deleteCredentials();
-          debugPrint('LoginPage Debug: Đã xóa credentials do không chọn nhớ tài khoản');
-        }
-
-        await VibrationService.vibrate(VibrationType.light);
+        // ✅ SỬA: Dùng VibrationType.success
+        await VibrationService.vibrate(VibrationType.success);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -134,22 +141,33 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
 
+        // Cập nhật lại trạng thái Biometric sau khi login/save token
+        _checkBiometricAvailability();
+
         // Điều hướng theo role
         final route = AppRouter.getHomeRouteByRole(authProvider.role);
         context.go(route);
 
       } else {
+        // ✅ SỬA: Dùng VibrationType.error
+        await VibrationService.vibrate(VibrationType.error);
+
         // Hiển thị lỗi từ AuthProvider
         final errorMessage = authProvider.errorMessage ?? "Lỗi không xác định";
         ScaffoldMessenger.of(context).showSnackBar(_buildErrorSnackBar(errorMessage));
       }
     } catch (e) {
       if (!mounted) return;
+      // ✅ SỬA: Dùng VibrationType.error
+      await VibrationService.vibrate(VibrationType.error);
+
       // Hiển thị lỗi catch (nếu có)
       final errorMessage = authProvider.errorMessage ?? e.toString();
       ScaffoldMessenger.of(context).showSnackBar(_buildErrorSnackBar(errorMessage));
     }
   }
+
+  // --- Utility methods (Giữ nguyên) ---
 
   SnackBar _buildErrorSnackBar(String message) {
     return SnackBar(
@@ -180,6 +198,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // --- BUILD METHOD (Giữ nguyên UI) ---
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -199,8 +218,6 @@ class _LoginPageState extends State<LoginPage> {
 
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 final currentPath = GoRouterState.of(context).uri.toString();
-
-                // Nếu đường dẫn hiện tại là '/login'
                 if (currentPath == '/login') {
                   context.go(route);
                 }

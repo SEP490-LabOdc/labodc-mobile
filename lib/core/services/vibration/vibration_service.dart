@@ -26,6 +26,14 @@ class VibrationService {
       case VibrationType.pattern:
         await Vibration.vibrate(pattern: [0, 200, 100, 300, 100, 400]);
         break;
+      case VibrationType.success:
+        await Vibration.vibrate(duration: 100); // Rung nhẹ (light)
+        break;
+      case VibrationType.error:
+        await Vibration.vibrate(pattern: [0, 50, 100, 50], repeat: -1); // Rung pattern ngắn 2 lần
+        await Future.delayed(const Duration(milliseconds: 300)); // Chờ rung hoàn tất
+        Vibration.cancel();
+        break;
     }
   }
 }
