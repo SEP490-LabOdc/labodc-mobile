@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../../../../core/config/networks/config.dart';
 import '../../../../core/error/failures.dart'; // THÊM IMPORT FAILURE
+import '../../domain/entities/auth_entity.dart';
 import '../models/auth_model.dart';
 
 class AuthRemoteDataSource {
@@ -102,7 +103,7 @@ class AuthRemoteDataSource {
           throw InvalidInputFailure(jsonResponse['message'] ?? "Token refresh failed: success=false");
         }
       } else {
-        throw _handleResponseError(response); // CHUYỂN ĐỔI SANG FAILURE
+        throw _handleResponseError(response);
       }
     } on SocketException {
       throw const NetworkFailure();
@@ -114,4 +115,49 @@ class AuthRemoteDataSource {
       throw UnknownFailure(e.toString());
     }
   }
+
+  Future<AuthModel> loginWithGoogle(String idToken) async {
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/v1/auth/google");
+    final body = jsonEncode({"idToken": idToken});
+
+    debugPrint("idToken: $idToken");
+
+    debugPrint("➡️ [AuthRemoteDataSource] Sending idToken to $url");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: body,
+      );
+
+      debugPrint("📩 [AuthRemoteDataSource] Response: ${response.statusCode}");
+      debugPrint("📩 Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          return AuthModel.fromJson(jsonResponse['data']);
+        } else {
+          throw InvalidInputFailure(jsonResponse['message'] ?? "Đăng nhập Google thất bại.");
+        }
+      } else {
+        throw ServerFailure(
+          "Đăng nhập Google thất bại (${response.statusCode}).",
+          response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw const NetworkFailure();
+    } on TimeoutException {
+      throw const NetworkFailure();
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      debugPrint("❌ [AuthRemoteDataSource] Error: $e");
+      throw UnknownFailure("Lỗi khi gửi yêu cầu Google Login: $e");
+    }
+  }
+
 }

@@ -88,7 +88,10 @@ class _LoginPageState extends State<LoginPage> {
         );
         // Điều hướng theo role
         final route = AppRouter.getHomeRouteByRole(authProvider.role);
-        context.go(route);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.go(route);
+        });
+
 
       } else {
         // ✅ SỬA: Dùng VibrationType.error
@@ -167,7 +170,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // --- Utility methods (Giữ nguyên) ---
 
   SnackBar _buildErrorSnackBar(String message) {
     return SnackBar(
@@ -198,7 +200,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // --- BUILD METHOD (Giữ nguyên UI) ---
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -341,6 +342,35 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                   const SizedBox(height: 32),
+
+                  ElevatedButton.icon(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                      final success = await authProvider.loginWithGoogle();
+                      if (!mounted) return;
+                      if (success) {
+                        final route = AppRouter.getHomeRouteByRole(authProvider.role);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          context.go(route);
+                        });
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(authProvider.errorMessage ?? 'Đăng nhập Google thất bại'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.g_mobiledata, size: 30, color: Colors.white),
+                    label: const Text("Đăng nhập bằng Google", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      minimumSize: const Size(double.infinity, 56),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

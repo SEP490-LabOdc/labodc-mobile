@@ -24,6 +24,7 @@ import 'core/services/vibration/vibration_cubit.dart';
 //  Features
 import 'features/auth/domain/use_cases/login_use_case.dart';
 import 'features/auth/presentation/provider/auth_provider.dart';
+import 'features/auth/presentation/utils/google_auth_service.dart';
 import 'features/talent/presentation/cubit/talent_profile_cubit.dart'; // Import đúng Cubit
 
 Future<void> main() async {
@@ -35,6 +36,10 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await init();
+  await GoogleAuthService.initialize(
+    clientId: Env.googleAndroidClientId,
+    serverClientId: Env.googleWebClientId,
+  );
 
   final authProvider = AuthProvider(loginUseCase: getIt<LoginUseCase>());
 
@@ -47,7 +52,6 @@ Future<void> main() async {
         providers: [
           BlocProvider(create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent())),
           BlocProvider(create: (_) => VibrationCubit()..load()),
-          // ✅ ĐÃ SỬA: Sử dụng TalentProfileCubit (đã đăng ký trong GetIt)
           BlocProvider(
             create: (context) => getIt<TalentProfileCubit>(
               param1: Provider.of<AuthProvider>(context, listen: false),

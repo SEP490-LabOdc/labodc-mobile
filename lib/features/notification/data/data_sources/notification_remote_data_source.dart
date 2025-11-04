@@ -26,16 +26,18 @@ class NotificationRemoteDataSource {
       case 404:
         return NotFoundFailure(errorMessage);
       case 500:
-        return const ServerFailure("Lỗi máy chủ nội bộ. Vui lòng thử lại sau.", 500);
+        return const ServerFailure(
+            "Lỗi máy chủ nội bộ. Vui lòng thử lại sau.", 500);
       default:
-      // Tất cả các lỗi khác (403, 409, 501, v.v.)
         return ServerFailure(errorMessage, response.statusCode);
     }
   }
 
   // Lấy danh sách thông báo
-  Future<List<NotificationModel>> getNotifications(String token, String userId) async {
-    final url = Uri.parse("${ApiConfig.baseUrl}/api/v1/notifications/users/$userId");
+  Future<List<NotificationModel>> getNotifications(String token,
+      String userId) async {
+    final url = Uri.parse(
+        "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId");
 
     try {
       final response = await http.get(
@@ -48,9 +50,13 @@ class NotificationRemoteDataSource {
         if (jsonResponse['success'] == true && jsonResponse['data'] is List) {
           final List<dynamic> dataList = jsonResponse['data'];
           // Map từng item trong list và parse
-          return dataList.map((item) => NotificationModel.fromJson({'data': [item]})).toList();
+          return dataList
+              .map((item) =>
+              NotificationModel.fromJson(item as Map<String, dynamic>))
+              .toList();
         } else {
-          throw InvalidInputFailure(jsonResponse['message'] ?? "Lỗi khi tải danh sách thông báo.");
+          throw InvalidInputFailure(
+              jsonResponse['message'] ?? "Lỗi khi tải danh sách thông báo.");
         }
       } else {
         throw _handleResponseError(response);
@@ -68,7 +74,8 @@ class NotificationRemoteDataSource {
 
   // Lấy số lượng thông báo chưa đọc
   Future<int> getUnreadCount(String token, String userId) async {
-    final url = Uri.parse("${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/unread");
+    final url = Uri.parse(
+        "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/unread");
 
     try {
       final response = await http.get(
@@ -87,7 +94,6 @@ class NotificationRemoteDataSource {
           return 0;
         }
       } else {
-        // Chỉ ném lỗi Network hoặc Server (nếu không phải 200)
         throw _handleResponseError(response);
       }
     } on SocketException {
@@ -97,27 +103,35 @@ class NotificationRemoteDataSource {
     } on Failure {
       rethrow;
     } catch (_) {
-      // Bắt các lỗi không xác định (như FormatException) và trả về 0
       return 0;
     }
   }
 
-  // Đánh dấu thông báo đã đọc
-  Future<void> markAsRead(String token, String notificationId) async {
-    // Giả sử API PATCH /api/v1/notifications/{id} với body {readStatus: true}
-    final url = Uri.parse("${ApiConfig.baseUrl}/api/v1/notifications/$notificationId");
+
+  Future<void> registerDeviceToken({
+    required String token,
+    required String userId,
+    required String platform,
+    String? authToken,
+  }) async {
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/v1/device-tokens/register");
+    final body = jsonEncode({
+      'userId': userId,
+      'deviceToken': token,
+      'platform': platform,
+    });
 
     try {
-      final response = await http.patch(
-        url,
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({'readStatus': true}),
-      ).timeout(const Duration(seconds: 10));
+      final headers = {
+        "Content-Type": "application/json",
+        if (authToken != null) "Authorization": "Bearer $authToken",
+      };
 
-      if (response.statusCode != 200) {
+      final response = await http
+          .post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
         throw _handleResponseError(response);
       }
     } on SocketException {

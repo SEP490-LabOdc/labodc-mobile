@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -16,7 +17,27 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class FcmService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNoti =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
+
+  // --- NEW: Controllers to expose FCM events ---
+  static final StreamController<Map<String, dynamic>> _onMessageController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  static final StreamController<Map<String, dynamic>>
+      _onMessageOpenedAppController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Public streams for consumers (e.g., NotificationCubit)
+  static Stream<Map<String, dynamic>> get onMessage =>
+      _onMessageController.stream;
+  static Stream<Map<String, dynamic>> get onMessageOpenedApp =>
+      _onMessageOpenedAppController.stream;
+
+  // --- NEW: optional callback to upload token to backend ---
+  // set via FcmService.setTokenUploadHandler(...)
+  static Future<void> Function(String token)? _tokenUploadHandler;
+  static void setTokenUploadHandler(Future<void> Function(String token)? cb) {
+    _tokenUploadHandler = cb;
+  }
 
   /// Gọi duy nhất 1 lần khi app start (sau Firebase.initializeApp)
   static Future<void> init() async {
@@ -34,8 +55,8 @@ class FcmService {
       'High Importance Notifications',
       description: 'Used for important notifications.',
       importance: Importance.high, // âm thanh mặc định + ưu tiên cao
-      playSound: true,             // âm thanh mặc định
-      enableVibration: true,       // rung mặc định
+      playSound: true, // âm thanh mặc định
+      enableVibration: true, // rung mặc định
     );
 
     // Khởi tạo plugin local notifications
@@ -48,33 +69,46 @@ class FcmService {
     // Tạo channel (Android)
     await _localNoti
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
     // Lấy token (nếu cần gửi về server)
     final token = await _messaging.getToken();
-    // TODO: POST token lên server của bạn
-    // print('FCM token: $token');
+    if (token != null) {
+      // call upload handler if provided
+      try {
+        await _tokenUploadHandler?.call(token);
+      } catch (_) {}
+    }
 
     // Lắng nghe refresh token
-    _messaging.onTokenRefresh.listen((t) {
-      // TODO: cập nhật token mới lên server
+    _messaging.onTokenRefresh.listen((t) async {
+      try {
+        await _tokenUploadHandler?.call(t);
+      } catch (_) {}
     });
 
     // === Foreground: hiển thị noti + xử lý data ===
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       await _showForegroundNotification(message);
+      final payload = _normalizeMessage(message);
+      _onMessageController.add(payload);
       _handleData(message.data);
     });
 
     // === User bấm noti khi app background → foreground ===
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      final payload = _normalizeMessage(message);
+      _onMessageOpenedAppController.add(payload);
       _handleData(message.data);
     });
 
     // === App mở từ trạng thái tắt nhờ bấm noti ===
     final initial = await _messaging.getInitialMessage();
     if (initial != null) {
+      final payload = _normalizeMessage(initial);
+      // Add to opened stream so listeners can handle initial deep-link
+      _onMessageOpenedAppController.add(payload);
       _handleData(initial.data);
     }
   }
@@ -95,9 +129,8 @@ class FcmService {
           channelDescription: 'Used for important notifications.',
           importance: Importance.high,
           priority: Priority.high,
-          playSound: true,     // âm thanh mặc định
+          playSound: true, // âm thanh mặc định
           enableVibration: true, // rung mặc định
-          // icon không set → dùng app icon mặc định
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -105,6 +138,19 @@ class FcmService {
         ),
       ),
     );
+  }
+
+  /// Normalize RemoteMessage -> Map for consumers
+  static Map<String, dynamic> _normalizeMessage(RemoteMessage message) {
+    final notif = message.notification;
+    return {
+      'notification': {
+        'title': notif?.title,
+        'body': notif?.body,
+      },
+      'data': message.data ?? {},
+      'messageId': message.messageId,
+    };
   }
 
   /// Tuỳ biến hành vi theo data từ BE
@@ -120,5 +166,11 @@ class FcmService {
       default:
         break;
     }
+  }
+
+  /// Optional: dispose controllers if needed (not usually required for app lifecycle)
+  static Future<void> dispose() async {
+    await _onMessageController.close();
+    await _onMessageOpenedAppController.close();
   }
 }

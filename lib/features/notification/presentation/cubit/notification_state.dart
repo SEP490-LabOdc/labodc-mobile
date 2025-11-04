@@ -1,51 +1,25 @@
 // lib/features/notification/presentation/cubit/notification_state.dart
-import '../../../notification/domain/entities/notification_entity.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-enum NotificationStatus { initial, loading, success, error }
+part 'notification_state.freezed.dart';
 
-class NotificationState {
-  final NotificationStatus status;
-  final List<NotificationEntity> notifications;
-  final int unreadCount;
-  final String? errorMessage;
+@freezed
+class NotificationState with _$NotificationState {
+  // Trạng thái ban đầu
+  const factory NotificationState.initial() = _Initial;
 
-  const NotificationState._({
-    required this.status,
-    required this.notifications,
-    required this.unreadCount,
-    this.errorMessage,
-  });
+  // Trạng thái đang tải
+  const factory NotificationState.loading() = _Loading;
 
-  factory NotificationState.initial() => const NotificationState._(
-    status: NotificationStatus.initial,
-    notifications: [],
-    unreadCount: 0,
-  );
+  // Trạng thái tải thành công, sử dụng List<dynamic> để linh hoạt
+  const factory NotificationState.loaded(List<dynamic> notifications) = _Loaded;
 
-  NotificationState copyWith({
-    NotificationStatus? status,
-    List<NotificationEntity>? notifications,
-    int? unreadCount,
-    String? errorMessage,
-  }) {
-    return NotificationState._(
-      status: status ?? this.status,
-      notifications: notifications ?? this.notifications,
-      unreadCount: unreadCount ?? this.unreadCount,
-      errorMessage: errorMessage,
-    );
-  }
+  // Trạng thái lỗi
+  const factory NotificationState.error(String message) = _Error;
 
-  NotificationState updateNotification({required String id, required bool readStatus}) {
-    final newNotifications = notifications.map((noti) {
-      return noti.id == id ? noti.copyWith(readStatus: readStatus) : noti;
-    }).toList();
+  // ✅ TRẠNG THÁI SIDE EFFECT: Nhận tin nhắn FCM foreground (kích hoạt SnackBar)
+  const factory NotificationState.newMessageReceived(Map<String, dynamic> message) = _NewMessageReceived;
 
-    return copyWith(
-      notifications: newNotifications,
-      unreadCount: readStatus && !notifications.firstWhere((n) => n.id == id).readStatus
-          ? unreadCount - 1
-          : unreadCount,
-    );
-  }
+  // ✅ TRẠNG THÁI SIDE EFFECT: Kích hoạt điều hướng sau khi click thông báo
+  const factory NotificationState.navigateTo(String route) = _NavigateTo;
 }

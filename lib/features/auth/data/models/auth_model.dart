@@ -1,6 +1,6 @@
 // lib/features/auth/data/models/auth_model.dart
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:flutter/foundation.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../domain/entities/auth_entity.dart';
 
 class AuthModel extends AuthEntity {
@@ -12,24 +12,41 @@ class AuthModel extends AuthEntity {
   });
 
   factory AuthModel.fromJson(Map<String, dynamic> json) {
-    final token = json['accessToken'] ?? '';
-    final Map<String, dynamic> payload = JwtDecoder.decode(token);
+    final token = json['accessToken']?.toString() ?? '';
+    String userId = '';
+    String role = 'user';
 
-    // ✅ SỬA LỖI: Ưu tiên lấy 'userId' (key chính xác theo payload bạn cung cấp),
-    // sau đó mới đến 'id' và 'sub' (dành cho các cấu hình JWT khác)
-    final String userId = payload['userId']?.toString() ?? payload['id']?.toString() ?? payload['sub']?.toString() ?? '';
+    if (token.isNotEmpty) {
+      try {
+        final Map<String, dynamic> payload = JwtDecoder.decode(token);
 
-    if (userId.isEmpty) {
-      debugPrint('AuthModel WARNING: User ID không thể giải mã từ JWT (Key "userId", "id", và "sub" đều rỗng)!');
+        userId = payload['userId']?.toString() ??
+            payload['id']?.toString() ??
+            payload['sub']?.toString() ??
+            '';
+
+        role = payload['role']?.toString() ?? 'user';
+
+        debugPrint(
+          '✅ [AuthModel] Decoded JWT → Role: $role | UserId: $userId',
+        );
+      } catch (e) {
+        debugPrint('⚠️ [AuthModel] Decode JWT failed: $e');
+      }
+    } else {
+      debugPrint('⚠️ [AuthModel] AccessToken is empty, cannot decode.');
     }
 
-    // DEBUG LOG: Kiểm tra Role và User ID được giải mã từ Access Token
-    debugPrint('AuthModel Debug: Decoded Role: ${payload['role']} | Decoded User ID: $userId');
+    if (userId.isEmpty) {
+      debugPrint(
+        '⚠️ [AuthModel] WARNING: userId không thể giải mã từ JWT.',
+      );
+    }
 
     return AuthModel(
       accessToken: token,
-      refreshToken: json['refreshToken'] ?? '',
-      role: payload['role'] ?? 'user',
+      refreshToken: json['refreshToken']?.toString() ?? '',
+      role: role,
       userId: userId,
     );
   }

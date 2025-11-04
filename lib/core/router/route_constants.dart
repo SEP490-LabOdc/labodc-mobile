@@ -11,6 +11,7 @@ class Routes {
   static const String company = '/company';
   static const String postDetail = '/post/:id';
   static const String setting = '/setting';
+  static const String labAdmin = '/lab-admin';
 
   // Route names
   static const String splashName = 'splash';
@@ -24,6 +25,7 @@ class Routes {
   static const String companyName = '/company';
   static const String postDetailName = 'post-detail';
   static const String settingName = 'setting';
+  static const String labAdminName = 'lab-admin';
 
   // Public routes (không cần authentication)
   static const List<String> publicRoutes = [

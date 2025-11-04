@@ -1,79 +1,85 @@
 // lib/features/notification/presentation/cubit/notification_cubit.dart
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/error/failures.dart';
-import '../../../auth/presentation/provider/auth_provider.dart'; // Giả sử tồn tại AuthProvider
-import '../../domain/repositories/notification_repository.dart';
+import '../../../../core/config/notifications/fcm_service.dart';
+import '../../../../core/router/route_constants.dart';
+import '../../domain/use_cases/get_notifications.dart';
+import '../../domain/use_cases/register_device_token_use_case.dart';
 import 'notification_state.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {
-  final NotificationRepository repository;
-  final AuthProvider authProvider;
+  StreamSubscription? _fcmMessageSubscription;
+  StreamSubscription? _fcmOpenedAppSubscription;
 
-  NotificationCubit({required this.repository, required this.authProvider})
-      : super(NotificationState.initial()) {
-    // Tự động load số lượng chưa đọc khi khởi tạo
-    if (authProvider.isAuthenticated) {
-      fetchUnreadCount();
-    }
+  final GetNotificationsUseCase _getNotificationsUseCase;
+  final RegisterDeviceTokenUseCase _registerDeviceTokenUseCase;
+  final String userId;
+  final String authToken;
+
+  NotificationCubit({
+    required GetNotificationsUseCase getNotificationsUseCase,
+    required RegisterDeviceTokenUseCase registerDeviceTokenUseCase,
+    required this.userId,
+    required this.authToken,
+  })  : _getNotificationsUseCase = getNotificationsUseCase,
+        _registerDeviceTokenUseCase = registerDeviceTokenUseCase,
+        super(const NotificationState.initial()) {
+    _setupFcm();
+    _listenToFCM();
+    loadNotifications();
   }
 
-  // Lấy số lượng thông báo chưa đọc
-  Future<void> fetchUnreadCount() async {
-    final token = authProvider.accessToken;
-    final userId = authProvider.userId;
-    if (token == null || token.isEmpty || userId.isEmpty) return;
+  Future<void> _setupFcm() async {
+    FcmService.setTokenUploadHandler((token) async {
+      final result = await _registerDeviceTokenUseCase.call(
+        userId: userId,
+        deviceToken: token,
+        platform: Platform.isAndroid ? "android" : "ios",
+        authToken: authToken,
+      );
 
-    try {
-      final count = await repository.getUnreadCount(token, userId);
-      emit(state.copyWith(unreadCount: count));
-    } on Failure catch (_) {
-      // Bỏ qua lỗi, giữ nguyên count cũ (thường là 0)
-    }
+      result.fold(
+            (failure) => debugPrint("❌ Lỗi đăng ký token FCM: ${failure.message}"),
+            (_) => debugPrint("✅ Token FCM đã được đăng ký thành công."),
+      );
+    });
+
+    await FcmService.init();
   }
 
-  // Lấy danh sách thông báo
-  Future<void> fetchNotifications() async {
-    final token = authProvider.accessToken;
-    final userId = authProvider.userId;
+  void _listenToFCM() {
+    _fcmMessageSubscription = FcmService.onMessage.listen((message) {
+      debugPrint('[CUBIT] 🔔 FCM Foreground Message Received');
+      emit(NotificationState.newMessageReceived(message));
+      loadNotifications();
+    });
 
-    if (token == null || token.isEmpty || userId.isEmpty) {
-      emit(state.copyWith(status: NotificationStatus.error, errorMessage: "Không có thông tin xác thực."));
-      return;
-    }
-
-    emit(state.copyWith(status: NotificationStatus.loading, errorMessage: null));
-
-    try {
-      final notifications = await repository.getNotifications(token, userId);
-      emit(state.copyWith(
-        status: NotificationStatus.success,
-        notifications: notifications,
-      ));
-    } on Failure catch (f) {
-      emit(state.copyWith(status: NotificationStatus.error, errorMessage: f.message));
-    }
+    _fcmOpenedAppSubscription = FcmService.onMessageOpenedApp.listen((message) {
+      debugPrint('[CUBIT] 📬 FCM Opened App Message Received');
+      final route = message['data']?['route'] ?? '${Routes.labAdmin}/notifications';
+      emit(NotificationState.navigateTo(route));
+    });
   }
 
-  // Đánh dấu 1 thông báo là đã đọc
-  Future<void> markAsRead(String notificationId) async {
-    final token = authProvider.accessToken;
-    if (token == null || token.isEmpty) return;
+  Future<void> loadNotifications() async {
+    emit(const NotificationState.loading());
+    final result = await _getNotificationsUseCase.call(
+      token: authToken,
+      userId: userId,
+    );
+    result.fold(
+          (failure) => emit(NotificationState.error(failure.message)),
+          (list) => emit(NotificationState.loaded(list)),
+    );
+  }
 
-    try {
-      // 1. Cập nhật trên UI trước (Optimistic Update)
-      emit(state.updateNotification(id: notificationId, readStatus: true));
-
-      // 2. Gọi API để xác nhận
-      await repository.markAsRead(token, notificationId);
-
-      // (Nếu API thành công, trạng thái đã đúng. Không cần làm gì thêm.)
-
-    } on Failure catch (f) {
-      // 3. Nếu API thất bại, đảo ngược trạng thái (Rollback - Rất quan trọng)
-      final originalNotification = state.notifications.firstWhere((n) => n.id == notificationId);
-      emit(state.updateNotification(id: notificationId, readStatus: originalNotification.readStatus));
-      // Có thể hiển thị lỗi
-      // print("Lỗi đánh dấu đã đọc: ${f.message}");
-    }
+  @override
+  Future<void> close() {
+    _fcmMessageSubscription?.cancel();
+    _fcmOpenedAppSubscription?.cancel();
+    debugPrint('[CUBIT] 🔕 FCM Subscriptions canceled.');
+    return super.close();
   }
 }

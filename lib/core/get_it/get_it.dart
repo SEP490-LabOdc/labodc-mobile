@@ -2,13 +2,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Core Config
-// ... (Theme)
-import '../../features/talent/data/data_sources/talent_remote_data_source.dart';
-import '../../features/talent/data/repositories_impl/talent_repository_impl.dart';
-import '../../features/talent/domain/repositories/talent_repository.dart';
-import '../../features/talent/domain/use_cases/get_talent_profile.dart';
-import '../../features/talent/presentation/cubit/talent_profile_cubit.dart';
+// Core Theme
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
 import '../theme/data/repository/theme_repository_impl.dart';
@@ -28,6 +22,20 @@ import '../../features/user/data/data_sources/user_remote_data_source.dart';
 import '../../features/user/data/repositories_impl/user_repository_impl.dart';
 import '../../features/user/domain/repositories/user_repository.dart';
 import '../../features/user/domain/use_cases/get_user_profile.dart';
+
+// Talent Feature
+import '../../features/talent/data/data_sources/talent_remote_data_source.dart';
+import '../../features/talent/data/repositories_impl/talent_repository_impl.dart';
+import '../../features/talent/domain/repositories/talent_repository.dart';
+import '../../features/talent/domain/use_cases/get_talent_profile.dart';
+import '../../features/talent/presentation/cubit/talent_profile_cubit.dart';
+
+// 🟩 Notification Feature
+import '../../features/notification/data/data_sources/notification_remote_data_source.dart';
+import '../../features/notification/data/repositories_impl/notification_repository_impl.dart';
+import '../../features/notification/domain/repositories/notification_repository.dart';
+import '../../features/notification/domain/use_cases/get_notifications.dart';
+import '../../features/notification/domain/use_cases/register_device_token_use_case.dart';
 
 final getIt = GetIt.instance;
 
@@ -70,7 +78,7 @@ Future<void> init() async {
         () => GetUserProfile(getIt<UserRepository>()),
   );
 
-  // KHỞI TẠO TALENT RIÊNG BIỆT
+  // --- Talent ---
   getIt.registerLazySingleton<TalentRemoteDataSource>(
         () => TalentRemoteDataSource(),
   );
@@ -80,12 +88,24 @@ Future<void> init() async {
   getIt.registerLazySingleton<GetTalentProfile>(
         () => GetTalentProfile(getIt<TalentRepository>()),
   );
-
-  // ĐĂNG KÝ TALENT PROFILE CUBIT
   getIt.registerFactoryParam<TalentProfileCubit, AuthProvider, void>(
         (authProvider, _) => TalentProfileCubit(
       getTalentProfile: getIt<GetTalentProfile>(),
       authProvider: authProvider,
     ),
+  );
+
+  // 🟩 --- Notification ---
+  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+        () => NotificationRemoteDataSource(),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+        () => NotificationRepositoryImpl(remoteDataSource: getIt()),
+  );
+  getIt.registerLazySingleton<GetNotificationsUseCase>(
+        () => GetNotificationsUseCase(getIt<NotificationRepository>()),
+  );
+  getIt.registerLazySingleton<RegisterDeviceTokenUseCase>(
+        () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
   );
 }
