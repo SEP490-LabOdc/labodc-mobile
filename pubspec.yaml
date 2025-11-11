@@ -53,6 +53,10 @@ dependencies:
   freezed_annotation: ^3.1.0
   dartz: ^0.10.1
   google_sign_in: ^7.2.0
+  stomp_dart_client: ^3.0.1
+  badges: ^3.1.2
+  equatable: ^2.0.5
+
 
 
   # The following adds the Cupertino Icons font to your application.

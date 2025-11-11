@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Core Theme
+import '../services/realtime/stomp_notification_service.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
 import '../theme/data/repository/theme_repository_impl.dart';
@@ -30,7 +31,7 @@ import '../../features/talent/domain/repositories/talent_repository.dart';
 import '../../features/talent/domain/use_cases/get_talent_profile.dart';
 import '../../features/talent/presentation/cubit/talent_profile_cubit.dart';
 
-// 🟩 Notification Feature
+// Notification Feature
 import '../../features/notification/data/data_sources/notification_remote_data_source.dart';
 import '../../features/notification/data/repositories_impl/notification_repository_impl.dart';
 import '../../features/notification/domain/repositories/notification_repository.dart';
@@ -65,7 +66,6 @@ Future<void> init() async {
   getIt.registerLazySingleton<LoginUseCase>(
         () => LoginUseCase(getIt<AuthRepository>()),
   );
-  // AuthProvider không cần register vì được tạo trong main.dart
 
   // --- User ---
   getIt.registerLazySingleton<UserRemoteDataSource>(
@@ -88,6 +88,8 @@ Future<void> init() async {
   getIt.registerLazySingleton<GetTalentProfile>(
         () => GetTalentProfile(getIt<TalentRepository>()),
   );
+
+  // 🧠 TalentProfileCubit có param authProvider, nên dùng registerFactoryParam
   getIt.registerFactoryParam<TalentProfileCubit, AuthProvider, void>(
         (authProvider, _) => TalentProfileCubit(
       getTalentProfile: getIt<GetTalentProfile>(),
@@ -95,7 +97,7 @@ Future<void> init() async {
     ),
   );
 
-  // 🟩 --- Notification ---
+  // --- Notification ---
   getIt.registerLazySingleton<NotificationRemoteDataSource>(
         () => NotificationRemoteDataSource(),
   );
@@ -108,4 +110,7 @@ Future<void> init() async {
   getIt.registerLazySingleton<RegisterDeviceTokenUseCase>(
         () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
   );
+
+  // 🧩 WebSocket / STOMP Service
+  getIt.registerLazySingleton(() => StompNotificationService());
 }

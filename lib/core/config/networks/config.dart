@@ -3,6 +3,8 @@ import 'env.dart';
 class ApiConfig {
   static String get baseUrl => Env.baseUrl;
 
+  static String get websocketUrl => Env.webSocketUrl;
+
   static Map<String, String> get defaultHeaders => {
     "Content-Type": "application/json",
   };

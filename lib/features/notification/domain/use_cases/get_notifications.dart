@@ -10,12 +10,12 @@ class GetNotificationsUseCase {
   GetNotificationsUseCase(this.repository);
 
   Future<Either<Failure, List<NotificationEntity>>> call({
-    required String token,
+    String? token,
     required String userId,
   }) async {
     try {
-      final notifications = await repository.getNotifications(token, userId);
-      return Right(notifications);
+      // Forward the repository's Either result (repository now returns Either)
+      return await repository.fetchNotifications(userId: userId, token: token);
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
