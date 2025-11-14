@@ -6,7 +6,7 @@ class NotificationModel extends NotificationEntity {
     required super.type,
     required super.title,
     required super.content,
-    super.data,
+    required super.data,
     required super.category,
     required super.priority,
     required super.deepLink,
@@ -21,13 +21,13 @@ class NotificationModel extends NotificationEntity {
       type: json['type'] ?? '',
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      data: json['data'] != null
-          ? Map<String, dynamic>.from(json['data'])
-          : null,
+      data: json['data'] ?? {},
       category: json['category'] ?? '',
       priority: json['priority'] ?? '',
       deepLink: json['deepLink'] ?? '',
-      sentAt: DateTime.tryParse(json['sentAt'] ?? '') ?? DateTime.now(),
+      sentAt: DateTime.tryParse(
+          json['sentAt'] ?? json['createdAt'] ?? json['timestamp'] ?? '') ??
+          DateTime.now(),
       readStatus: json['readStatus'] ?? false,
     );
   }

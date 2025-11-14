@@ -15,27 +15,29 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? token,
   }) async {
     try {
-      final dynamic models =
-          await (remoteDataSource as dynamic).getNotifications(token ?? '', userId);
-      final entities = (models as List)
-          .map((m) => NotificationEntity(
-                notificationRecipientId: m.notificationRecipientId,
-                type: m.type,
-                title: m.title,
-                content: m.content,
-                data: m.data,
-                category: m.category,
-                priority: m.priority,
-                deepLink: m.deepLink,
-                sentAt: m.createdAt ?? DateTime.now(),
-                readStatus: m.readStatus,
-              ))
-          .toList();
+      final models = await remoteDataSource.fetchNotifications(userId, authToken: token);
+      final entities = models.map(_mapToEntity).toList();
       return Right(entities);
     } on Failure catch (f) {
       return Left(f);
     } catch (e, st) {
-      return Left(UnknownFailure('getNotifications error: $e\n$st'));
+      return Left(UnknownFailure('fetchNotifications error: $e\n$st'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<NotificationEntity>>> fetchUnreadNotifications({
+    required String userId,
+    String? token,
+  }) async {
+    try {
+      final models = await remoteDataSource.fetchUnreadNotifications(userId, authToken: token);
+      final entities = models.map(_mapToEntity).toList();
+      return Right(entities);
+    } on Failure catch (f) {
+      return Left(f);
+    } catch (e, st) {
+      return Left(UnknownFailure('fetchUnreadNotifications error: $e\n$st'));
     }
   }
 
@@ -45,14 +47,10 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? token,
   }) async {
     try {
-      final notificationsResult =
-          await fetchNotifications(userId: userId, token: token);
-      return notificationsResult.fold(
-        (failure) => Left(failure),
-        (list) {
-          final count = list.where((n) => !n.readStatus).length;
-          return Right(count);
-        },
+      final result = await fetchUnreadNotifications(userId: userId, token: token);
+      return result.fold(
+            (f) => Left(f),
+            (list) => Right(list.length),
       );
     } on Failure catch (f) {
       return Left(f);
@@ -68,9 +66,11 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? token,
   }) async {
     try {
-      // Use dynamic invoke to tolerate different remote data source signatures.
-      await (remoteDataSource as dynamic).markAsRead(
-          userId: userId, notificationRecipientId: notificationRecipientId, token: token);
+      await remoteDataSource.markAsRead(
+        userId: userId,
+        notificationRecipientId: notificationRecipientId,
+        authToken: token,
+      );
       return const Right(null);
     } on Failure catch (f) {
       return Left(f);
@@ -87,7 +87,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? authToken,
   }) async {
     try {
-      await (remoteDataSource as dynamic).registerDeviceToken(
+      await remoteDataSource.registerDeviceToken(
         token: deviceToken,
         userId: userId,
         platform: platform,
@@ -99,5 +99,20 @@ class NotificationRepositoryImpl implements NotificationRepository {
     } catch (e, st) {
       return Left(UnknownFailure('registerDeviceToken error: $e\n$st'));
     }
+  }
+
+  NotificationEntity _mapToEntity(dynamic m) {
+    return NotificationEntity(
+      notificationRecipientId: m.notificationRecipientId,
+      type: m.type,
+      title: m.title,
+      content: m.content,
+      data: m.data,
+      category: m.category,
+      priority: m.priority,
+      deepLink: m.deepLink,
+      sentAt: m.sentAt ?? DateTime.now(),
+      readStatus: m.readStatus,
+    );
   }
 }

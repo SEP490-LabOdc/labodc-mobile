@@ -1,10 +1,14 @@
 import 'package:dartz/dartz.dart';
-
 import '../../../../core/error/failures.dart';
 import '../entities/notification_entity.dart';
 
 abstract class NotificationRepository {
   Future<Either<Failure, List<NotificationEntity>>> fetchNotifications({
+    required String userId,
+    String? token,
+  });
+
+  Future<Either<Failure, List<NotificationEntity>>> fetchUnreadNotifications({
     required String userId,
     String? token,
   });

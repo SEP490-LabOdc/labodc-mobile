@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../websocket/cubit/websocket_notification_cubit.dart';
 
@@ -39,6 +40,17 @@ class _NotificationBellState extends State<NotificationBell> {
     setState(() => _isOpen = false);
   }
 
+  String _formatTime(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 1) return "Vừa xong";
+    if (diff.inMinutes < 60) return "${diff.inMinutes} phút trước";
+    if (diff.inHours < 24) return "${diff.inHours} giờ trước";
+    if (diff.inDays == 1) return "Hôm qua";
+    return DateFormat('dd/MM/yyyy HH:mm').format(date);
+  }
+
   OverlayEntry _createOverlayEntry(BuildContext context) {
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
@@ -46,23 +58,18 @@ class _NotificationBellState extends State<NotificationBell> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // ✅ Dropdown width
-    const dropdownWidth = 360.0;
-    const dropdownMaxHeight = 500.0;
+    const dropdownWidth = 380.0;
+    const dropdownMaxHeight = 520.0;
 
-    // ✅ Calculate position - align to right edge of bell icon
-    // Make sure dropdown doesn't go off-screen
-    final left = (offset.dx + size.width - dropdownWidth).clamp(8.0, screenWidth - dropdownWidth - 8);
+    final left = (offset.dx + size.width - dropdownWidth)
+        .clamp(8.0, screenWidth - dropdownWidth - 8);
     final top = offset.dy + size.height + 8;
-
-    // ✅ Check if dropdown would go off bottom of screen
     final availableHeight = screenHeight - top - 16;
     final dropdownHeight = availableHeight.clamp(200.0, dropdownMaxHeight);
 
     return OverlayEntry(
       builder: (overlayCtx) => Stack(
         children: [
-          // ✅ Backdrop to close dropdown when tapping outside
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
@@ -70,20 +77,16 @@ class _NotificationBellState extends State<NotificationBell> {
               child: Container(color: Colors.transparent),
             ),
           ),
-
-          // ✅ Dropdown card
           Positioned(
             left: left,
             top: top,
             width: dropdownWidth,
             child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(12),
+              elevation: 10,
+              borderRadius: BorderRadius.circular(14),
               color: Theme.of(context).cardColor,
               child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: dropdownHeight,
-                ),
+                constraints: BoxConstraints(maxHeight: dropdownHeight),
                 child: BlocBuilder<WebSocketNotificationCubit,
                     List<NotificationEntity>>(
                   builder: (context, notifications) {
@@ -95,9 +98,9 @@ class _NotificationBellState extends State<NotificationBell> {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ✅ Header with tabs
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
@@ -106,10 +109,7 @@ class _NotificationBellState extends State<NotificationBell> {
                             ],
                           ),
                         ),
-
                         const Divider(height: 1),
-
-                        // ✅ Notification list
                         if (displayedList.isEmpty)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 40),
@@ -118,13 +118,9 @@ class _NotificationBellState extends State<NotificationBell> {
                                 Icon(Icons.notifications_off_outlined,
                                     size: 48, color: Colors.grey),
                                 SizedBox(height: 12),
-                                Text(
-                                  "Không có thông báo nào",
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                  ),
-                                ),
+                                Text("Không có thông báo nào",
+                                    style: TextStyle(
+                                        color: Colors.grey, fontSize: 14)),
                               ],
                             ),
                           )
@@ -132,70 +128,94 @@ class _NotificationBellState extends State<NotificationBell> {
                           Flexible(
                             child: ListView.separated(
                               shrinkWrap: true,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 8),
                               itemCount: displayedList.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, __) =>
+                              const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 final n = displayedList[index];
+                                final sentAt = n.sentAt;
                                 return InkWell(
+                                  borderRadius: BorderRadius.circular(12),
                                   onTap: () {
-                                    final cubit = context.read<WebSocketNotificationCubit>();
+                                    final cubit = context
+                                        .read<WebSocketNotificationCubit>();
                                     cubit.markAsRead(n.notificationRecipientId);
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
+                                        horizontal: 16, vertical: 14),
                                     color: n.readStatus
                                         ? Colors.transparent
                                         : Theme.of(context)
                                         .primaryColor
-                                        .withOpacity(0.05),
+                                        .withOpacity(0.06),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
-                                        // ✅ Unread indicator
+                                        // Dot indicator
                                         Container(
                                           width: 8,
                                           height: 8,
-                                          margin: const EdgeInsets.only(top: 4, right: 12),
+                                          margin: const EdgeInsets.only(
+                                              top: 6, right: 12),
                                           decoration: BoxDecoration(
                                             color: n.readStatus
                                                 ? Colors.transparent
-                                                : Theme.of(context).primaryColor,
+                                                : Theme.of(context)
+                                                .colorScheme
+                                                .primary,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
-
-                                        // ✅ Notification content
+                                        // Notification body
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 n.title,
                                                 style: TextStyle(
-                                                  fontWeight: n.readStatus
-                                                      ? FontWeight.normal
-                                                      : FontWeight.bold,
-                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 15,
+                                                  color: n.readStatus
+                                                      ? Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.color
+                                                      : Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
                                                 ),
                                                 maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
+                                                overflow:
+                                                TextOverflow.ellipsis,
                                               ),
-                                              const SizedBox(height: 4),
+                                              const SizedBox(height: 6),
                                               Text(
                                                 n.content,
                                                 style: TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: 13.5,
                                                   color: Theme.of(context)
                                                       .textTheme
-                                                      .bodySmall
-                                                      ?.color,
+                                                      .bodyMedium
+                                                      ?.color
+                                                      ?.withOpacity(0.85),
                                                 ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 3,
+                                                overflow:
+                                                TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                _formatTime(sentAt),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -227,11 +247,12 @@ class _NotificationBellState extends State<NotificationBell> {
           setState(() => _tabIndex = index);
           _overlayEntry?.markNeedsBuild();
         },
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: isActive
-                ? Theme.of(context).primaryColor
+                ? Theme.of(context).colorScheme.primary
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
@@ -239,11 +260,9 @@ class _NotificationBellState extends State<NotificationBell> {
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isActive
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.onSurface,
+              color: isActive ? Colors.white : Colors.grey[700],
               fontWeight: FontWeight.w600,
-              fontSize: 13,
+              fontSize: 13.5,
             ),
           ),
         ),
@@ -257,7 +276,8 @@ class _NotificationBellState extends State<NotificationBell> {
       link: _layerLink,
       child: BlocBuilder<WebSocketNotificationCubit, List<NotificationEntity>>(
         builder: (context, notifications) {
-          final unreadCount = notifications.where((n) => !n.readStatus).length;
+          final unreadCount =
+              notifications.where((n) => !n.readStatus).length;
 
           return InkWell(
             onTap: () => _toggleDropdown(context),
@@ -274,22 +294,19 @@ class _NotificationBellState extends State<NotificationBell> {
                     size: widget.iconSize,
                     color: Theme.of(context).iconTheme.color,
                   ),
-
-                  // ✅ Badge with unread count
                   if (unreadCount > 0)
                     Positioned(
                       right: -4,
                       top: -4,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.red,
+                          color: Colors.redAccent,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: Theme.of(context).scaffoldBackgroundColor,
+                            color:
+                            Theme.of(context).scaffoldBackgroundColor,
                             width: 2,
                           ),
                         ),

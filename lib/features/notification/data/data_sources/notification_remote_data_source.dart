@@ -34,26 +34,34 @@ class NotificationRemoteDataSource {
     }
   }
 
-  /// Lấy danh sách thông báo người dùng
   Future<List<NotificationModel>> fetchNotifications(String userId,
       {String? authToken}) async {
     final url =
     Uri.parse("${ApiConfig.baseUrl}/api/v1/notifications/users/$userId");
+    return _fetchList(url, authToken);
+  }
 
+  Future<List<NotificationModel>> fetchUnreadNotifications(String userId,
+      {String? authToken}) async {
+    final url = Uri.parse(
+        "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/unread");
+    return _fetchList(url, authToken);
+  }
+
+  Future<List<NotificationModel>> _fetchList(Uri url, String? authToken) async {
     try {
-      final response = await client
-          .get(url, headers: {
-        "Accept": "application/json",
-        if (authToken != null) "Authorization": "Bearer $authToken",
-      })
-          .timeout(const Duration(seconds: 15));
+      final response = await client.get(
+        url,
+        headers: {
+          "Accept": "application/json",
+          if (authToken != null) "Authorization": "Bearer $authToken",
+        },
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
         final List<dynamic> dataList = jsonResponse['data'] ?? [];
-        return dataList
-            .map((e) => NotificationModel.fromJson(e))
-            .toList();
+        return dataList.map((e) => NotificationModel.fromJson(e)).toList();
       } else {
         throw _handleResponseError(response);
       }
@@ -66,7 +74,6 @@ class NotificationRemoteDataSource {
     }
   }
 
-  /// Gửi request đánh dấu đã đọc
   Future<void> markAsRead({
     required String userId,
     required String notificationRecipientId,
@@ -74,14 +81,14 @@ class NotificationRemoteDataSource {
   }) async {
     final url = Uri.parse(
         "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/$notificationRecipientId/read");
-
     try {
-      final response = await client
-          .post(url, headers: {
-        "Accept": "application/json",
-        if (authToken != null) "Authorization": "Bearer $authToken",
-      })
-          .timeout(const Duration(seconds: 10));
+      final response = await client.post(
+        url,
+        headers: {
+          "Accept": "application/json",
+          if (authToken != null) "Authorization": "Bearer $authToken",
+        },
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw _handleResponseError(response);
@@ -94,7 +101,6 @@ class NotificationRemoteDataSource {
       throw UnknownFailure(e.toString());
     }
   }
-
 
   Future<void> registerDeviceToken({
     required String token,
@@ -116,9 +122,10 @@ class NotificationRemoteDataSource {
         if (authToken != null) "Authorization": "Bearer $authToken",
       };
 
-      final response = await client
-          .post(url, headers: headers, body: body)
-          .timeout(const Duration(seconds: 10));
+      final response =
+      await client.post(url, headers: headers, body: body).timeout(
+        const Duration(seconds: 10),
+      );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw _handleResponseError(response);
