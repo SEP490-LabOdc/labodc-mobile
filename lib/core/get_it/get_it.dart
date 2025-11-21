@@ -1,8 +1,15 @@
 // lib/core/get_it/get_it.dart
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Core Theme
+import '../../features/auth/data/token/auth_token_storage.dart';
+import '../../features/hiring_projects/data/data_sources/project_remote_data_source.dart';
+import '../../features/hiring_projects/data/repositories_impl/project_repository_impl.dart';
+import '../../features/hiring_projects/domain/repositories/project_repository.dart';
+import '../../features/hiring_projects/domain/use_cases/get_hiring_projects.dart';
+import '../../features/hiring_projects/presentation/cubit/hiring_projects_cubit.dart';
 import '../services/realtime/stomp_notification_service.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
@@ -60,9 +67,17 @@ Future<void> init() async {
   getIt.registerLazySingleton<AuthRemoteDataSource>(
         () => AuthRemoteDataSource(),
   );
+// Token Storage
+  getIt.registerLazySingleton<AuthTokenStorage>(() => AuthTokenStorage());
+
+// Auth Repository
   getIt.registerLazySingleton<AuthRepository>(
-        () => AuthRepositoryImpl(remoteDataSource: getIt<AuthRemoteDataSource>()),
+        () => AuthRepositoryImpl(
+      remoteDataSource: getIt<AuthRemoteDataSource>(),
+      tokenStorage: getIt<AuthTokenStorage>(),
+    ),
   );
+
   getIt.registerLazySingleton<LoginUseCase>(
         () => LoginUseCase(getIt<AuthRepository>()),
   );
@@ -110,6 +125,45 @@ Future<void> init() async {
   getIt.registerLazySingleton<RegisterDeviceTokenUseCase>(
         () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
   );
+
+// ======================================================
+// COMPANY FEATURE (Hiring Projects)
+// ======================================================
+
+// 1. Http Client (Dùng chung toàn app)
+  getIt.registerLazySingleton<http.Client>(() => http.Client());
+
+// 2. ProjectRemoteDataSource
+  getIt.registerLazySingleton<ProjectRemoteDataSource>(
+        () => ProjectRemoteDataSourceImpl(
+      getIt<http.Client>(),
+      getIt<AuthRepository>(),
+    ),
+  );
+
+// 3. ProjectRepository
+  getIt.registerLazySingleton<ProjectRepository>(
+        () => ProjectRepositoryImpl(
+      getIt<ProjectRemoteDataSource>(),
+    ),
+  );
+
+// 4. UseCase
+  getIt.registerLazySingleton<GetHiringProjects>(
+        () => GetHiringProjects(
+      getIt<ProjectRepository>(),
+    ),
+  );
+
+// 5. Cubit
+  getIt.registerFactory<HiringProjectsCubit>(
+        () => HiringProjectsCubit(
+      getIt<GetHiringProjects>(),
+    ),
+  );
+
+
+
 
   // 🧩 WebSocket / STOMP Service
   getIt.registerLazySingleton(() => StompNotificationService());

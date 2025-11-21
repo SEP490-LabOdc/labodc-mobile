@@ -77,10 +77,14 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       return;
     }
 
-    // BƯỚC CUỐI: Chưa xác thực. Chuyển hướng đến trang Home công cộng.
-    // Nếu người dùng cố gắng vào protected route sau đó, GoRouter sẽ chuyển họ đến /login.
-    debugPrint('SplashPage: Chưa xác thực. Chuyển hướng đến ${Routes.home}');
-    context.go(Routes.home);
+    // 🔥 THAY ĐỔI: Chuyển hướng thẳng về trang Login và thông báo (nếu cần)
+    // Sau khi chuyển sang LoginPage, bạn có thể hiển thị thông báo "Bạn cần đăng nhập" ở đó (ví dụ: dùng SnackBar).
+    debugPrint('SplashPage: Chưa xác thực hoặc không có Role. Chuyển hướng đến ${Routes.login}');
+
+    // Thêm logic hiển thị thông báo ở đây (trước context.go) nếu bạn muốn dùng một custom dialog/toast
+    // Ví dụ: ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bạn cần đăng nhập để tiếp tục.')));
+
+    context.go(Routes.login);
   }
 
   // Đã loại bỏ _showLoginMethodDialog
@@ -112,7 +116,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ... (UI giữ nguyên)
                   Container(
                     width: 150,
                     height: 150,

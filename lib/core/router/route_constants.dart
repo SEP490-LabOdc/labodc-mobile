@@ -1,7 +1,7 @@
 class Routes {
   // Route paths
   static const String splash = '/';
-  static const String home = '/home';
+  // static const String home = '/home';
   static const String login = '/login';
   static const String register = '/register';
   static const String user = '/user';
@@ -15,7 +15,7 @@ class Routes {
 
   // Route names
   static const String splashName = 'splash';
-  static const String homeName = 'home';
+  // static const String homeName = 'home';
   static const String loginName = 'login';
   static const String registerName = 'register';
   static const String userName = 'user';
@@ -30,7 +30,7 @@ class Routes {
   // Public routes (không cần authentication)
   static const List<String> publicRoutes = [
     splash,
-    home,
+    // home,
     login,
     register,
   ];

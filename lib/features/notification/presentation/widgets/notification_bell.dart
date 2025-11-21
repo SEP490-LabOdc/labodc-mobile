@@ -20,24 +20,47 @@ class _NotificationBellState extends State<NotificationBell> {
 
   @override
   void dispose() {
-    _closeDropdown();
+    // Không gọi setState trong dispose
+    _removeOverlaySafely();
     super.dispose();
+  }
+
+  void _removeOverlaySafely() {
+    if (_overlayEntry != null) {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+    }
   }
 
   void _toggleDropdown(BuildContext context) {
     if (_isOpen) {
       _closeDropdown();
     } else {
-      _overlayEntry = _createOverlayEntry(context);
-      Overlay.of(context).insert(_overlayEntry!);
+      _openDropdown(context);
+    }
+  }
+
+  void _openDropdown(BuildContext context) {
+    if (_overlayEntry != null) return;
+
+    final entry = _createOverlayEntry(context);
+    Overlay.of(context).insert(entry);
+    _overlayEntry = entry;
+
+    if (mounted) {
       setState(() => _isOpen = true);
     }
   }
 
   void _closeDropdown() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    setState(() => _isOpen = false);
+    if (_overlayEntry != null) {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+    }
+
+    if (mounted) {
+      setState(() => _isOpen = false);
+    }
   }
 
   String _formatTime(DateTime date) {
@@ -55,6 +78,7 @@ class _NotificationBellState extends State<NotificationBell> {
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
     final offset = renderBox.localToGlobal(Offset.zero);
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -64,6 +88,7 @@ class _NotificationBellState extends State<NotificationBell> {
     final left = (offset.dx + size.width - dropdownWidth)
         .clamp(8.0, screenWidth - dropdownWidth - 8);
     final top = offset.dy + size.height + 8;
+
     final availableHeight = screenHeight - top - 16;
     final dropdownHeight = availableHeight.clamp(200.0, dropdownMaxHeight);
 
@@ -74,7 +99,6 @@ class _NotificationBellState extends State<NotificationBell> {
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onTap: _closeDropdown,
-              child: Container(color: Colors.transparent),
             ),
           ),
           Positioned(
@@ -135,13 +159,13 @@ class _NotificationBellState extends State<NotificationBell> {
                               const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 final n = displayedList[index];
-                                final sentAt = n.sentAt;
                                 return InkWell(
                                   borderRadius: BorderRadius.circular(12),
                                   onTap: () {
-                                    final cubit = context
-                                        .read<WebSocketNotificationCubit>();
-                                    cubit.markAsRead(n.notificationRecipientId);
+                                    context
+                                        .read<WebSocketNotificationCubit>()
+                                        .markAsRead(
+                                        n.notificationRecipientId);
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -155,7 +179,6 @@ class _NotificationBellState extends State<NotificationBell> {
                                       crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                       children: [
-                                        // Dot indicator
                                         Container(
                                           width: 8,
                                           height: 8,
@@ -170,7 +193,6 @@ class _NotificationBellState extends State<NotificationBell> {
                                             shape: BoxShape.circle,
                                           ),
                                         ),
-                                        // Notification body
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment:
@@ -211,7 +233,7 @@ class _NotificationBellState extends State<NotificationBell> {
                                               ),
                                               const SizedBox(height: 6),
                                               Text(
-                                                _formatTime(sentAt),
+                                                _formatTime(n.sentAt),
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey[600],
@@ -241,6 +263,7 @@ class _NotificationBellState extends State<NotificationBell> {
 
   Widget _buildTab(String title, int index) {
     final isActive = _tabIndex == index;
+
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -274,7 +297,8 @@ class _NotificationBellState extends State<NotificationBell> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: BlocBuilder<WebSocketNotificationCubit, List<NotificationEntity>>(
+      child: BlocBuilder<WebSocketNotificationCubit,
+          List<NotificationEntity>>(
         builder: (context, notifications) {
           final unreadCount =
               notifications.where((n) => !n.readStatus).length;
@@ -305,8 +329,8 @@ class _NotificationBellState extends State<NotificationBell> {
                           color: Colors.redAccent,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color:
-                            Theme.of(context).scaffoldBackgroundColor,
+                            color: Theme.of(context)
+                                .scaffoldBackgroundColor,
                             width: 2,
                           ),
                         ),

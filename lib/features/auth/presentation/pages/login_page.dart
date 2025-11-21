@@ -420,7 +420,7 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: isLoading
                         ? null
                         : () {
-                      context.go('/home');
+                      context.go('/login');
                     },
                   ),
                 ],

@@ -10,7 +10,6 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/company/presentation/pages/company_main_page.dart';
-import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/mentor/presentation/pages/mentor_main_page.dart';
 import '../../features/talent/presentation/pages/talent_main_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
@@ -47,11 +46,6 @@ class AppRouter {
           path: Routes.splash,
           name: Routes.splashName,
           builder: (context, state) => const SplashPage(),
-        ),
-        GoRoute(
-          path: Routes.home,
-          name: Routes.homeName,
-          builder: (context, state) => const HomePage(),
         ),
         GoRoute(
           path: Routes.login,
@@ -188,7 +182,7 @@ class AppRouter {
       ) {
     final currentPath = state.uri.toString();
     final isAuthenticated = authProvider.isAuthenticated;
-    final role = authProvider.role;
+    final role = authProvider.currentUser?.role;
     final targetHomeRoute = getHomeRouteByRole(role);
 
     debugPrint(
@@ -204,11 +198,9 @@ class AppRouter {
       return Routes.login;
     }
 
-    // 2️⃣ Đã login nhưng vẫn ở login/home/register
+    // 2️⃣ Đã login nhưng vẫn ở login
     if (isAuthenticated &&
-        (currentPath == Routes.login ||
-            currentPath == Routes.home ||
-            currentPath == Routes.register)) {
+        (currentPath == Routes.login)) {
       return targetHomeRoute;
     }
 
