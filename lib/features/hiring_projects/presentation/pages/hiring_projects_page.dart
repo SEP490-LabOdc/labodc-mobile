@@ -8,6 +8,9 @@ import '../../../../shared/widgets/project_card.dart';
 import '../../../../shared/widgets/reusable_card.dart';
 import '../../../../shared/widgets/service_chip.dart';
 import '../../../../shared/widgets/expandable_text.dart';
+import 'project_detail_page.dart'; // new import
+import '../../../../core/router/app_router.dart';
+import '../../../../core/router/route_constants.dart';
 
 // New page: shows projects and triggers loadMoreProjects when scrolling to bottom.
 class HiringProjectsPage extends StatefulWidget {
@@ -69,7 +72,7 @@ class _HiringProjectsPageState extends State<HiringProjectsPage> {
 
     return ReusableCard(
       onTap: () {
-        // TODO: navigate to project details
+        AppRouter.pushNamed(Routes.projectDetailName, pathParameters: {'id': p.projectId});
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

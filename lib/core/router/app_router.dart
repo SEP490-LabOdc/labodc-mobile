@@ -14,6 +14,7 @@ import '../../features/mentor/presentation/pages/mentor_main_page.dart';
 import '../../features/talent/presentation/pages/talent_main_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
 import '../../common/presentation/pages/setting_page.dart';
+import '../../features/hiring_projects/presentation/pages/project_detail_page.dart'; // add import
 
 // Providers
 import '../../features/auth/presentation/provider/auth_provider.dart';
@@ -168,6 +169,17 @@ class AppRouter {
               ),
               child: const CompanyMainPage(),
             );
+          },
+        ),
+
+        // Project detail (protected page — uses same auth guard as other protected routes)
+        GoRoute(
+          path: Routes.projectDetail,
+          name: Routes.projectDetailName,
+          builder: (context, state) {
+            final id = state.pathParameters['id'];
+            if (id == null) return const SizedBox.shrink();
+            return ProjectDetailPage(projectId: id);
           },
         ),
       ],

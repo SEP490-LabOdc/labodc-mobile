@@ -4,6 +4,7 @@ import '../../../../core/error/failures.dart';
 import '../../domain/entities/project_entity.dart';
 import '../../domain/repositories/project_repository.dart';
 import '../data_sources/project_remote_data_source.dart';
+import '../models/project_detail_model.dart';
 
 class ProjectRepositoryImpl implements ProjectRepository {
   final ProjectRemoteDataSource remoteDataSource;
@@ -37,6 +38,24 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return const Left(NetworkFailure());
     } catch (_) {
       return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProjectDetailModel>> getProjectDetail(String projectId) async {
+    try {
+      final remoteData = await remoteDataSource.getProjectDetail(projectId);
+      // Thành công trả về Right chứa data
+      return Right(remoteData);
+    } on ServerException catch (e) {
+      // Xử lý các lỗi server trả về
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      // Lỗi mất mạng
+      return const Left(NetworkFailure());
+    } catch (e) {
+      // Lỗi không xác định
+      return Left(ServerFailure(e.toString(), 500));
     }
   }
 }

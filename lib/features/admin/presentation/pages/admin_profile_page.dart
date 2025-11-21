@@ -1,24 +1,31 @@
 // lib/features/admin/presentation/pages/admin_profile_page.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/router/route_constants.dart';
 
 class AdminProfilePage extends StatelessWidget {
   const AdminProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person_pin_circle, size: 60, color: Colors.indigo),
-          SizedBox(height: 16),
-          Text(
-            "Admin Profile",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          Text("Quản lý thông tin tài khoản Admin"),
-        ],
-      ),
-    );
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+              "Hồ sơ Quản trị viên",
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Cài đặt',
+              onPressed: () {
+                context.push(Routes.setting);
+              },
+            ),
+          ],
+        ),
+        body: const Center(
+          child: Text("Admin Profile Page Content"),
+        ));
   }
 }

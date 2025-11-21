@@ -10,6 +10,7 @@ class Routes {
   static const String mentor = '/mentor';
   static const String company = '/company';
   static const String postDetail = '/post/:id';
+  static const String projectDetail = '/projects/:id';
   static const String setting = '/setting';
   static const String labAdmin = '/lab-admin';
 
@@ -24,6 +25,7 @@ class Routes {
   static const String mentorName = 'mentor';
   static const String companyName = '/company';
   static const String postDetailName = 'post-detail';
+  static const String projectDetailName = 'project-detail';
   static const String settingName = 'setting';
   static const String labAdminName = 'lab-admin';
 

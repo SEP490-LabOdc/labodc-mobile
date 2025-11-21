@@ -6,10 +6,13 @@ import 'package:labodc_mobile/shared/widgets/service_chip.dart';
 
 // Import các file BLoC/Cubit và Entity đã định nghĩa
 import '../../../../core/get_it/get_it.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/router/route_constants.dart';
 import '../../../hiring_projects/domain/entities/project_entity.dart';
 import '../../../hiring_projects/presentation/cubit/hiring_projects_cubit.dart';
 import '../../../hiring_projects/presentation/cubit/hiring_projects_state.dart';
 import '../../../hiring_projects/presentation/pages/hiring_projects_page.dart';
+import '../../../hiring_projects/presentation/pages/project_detail_page.dart'; // add import
 
 import '../../../../shared/widgets/project_card.dart';
 import '../../../../shared/widgets/reusable_card.dart';
@@ -272,7 +275,7 @@ class HiringProjectListItem extends StatelessWidget {
     final deadline = _formatDateSafe(project.endDate);
     return ReusableCard(
       onTap: () {
-        // TODO: navigate to project detail
+        AppRouter.pushNamed(Routes.projectDetailName, pathParameters: {'id': project.projectId});
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
