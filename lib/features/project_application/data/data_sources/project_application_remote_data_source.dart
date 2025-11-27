@@ -1,0 +1,173 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
+// Điều chỉnh import theo cấu trúc dự án thực tế của bạn
+import '../../../../core/config/networks/config.dart';
+import '../../../../core/error/exceptions.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
+import '../models/submitted_cv_model.dart';
+import '../models/uploaded_file_model.dart';
+
+abstract class ProjectApplicationRemoteDataSource {
+  Future<List<SubmittedCvModel>> getMySubmittedCvs();
+  Future<void> applyProject({
+    required String userId,
+    required String projectId,
+    required String cvUrl,
+  });
+  Future<UploadedFileModel> uploadCvFile(File file);
+}
+
+class ProjectApplicationRemoteDataSourceImpl
+    implements ProjectApplicationRemoteDataSource {
+  final http.Client client;
+  final AuthRepository authRepository;
+
+  ProjectApplicationRemoteDataSourceImpl({
+    required this.client,
+    required this.authRepository,
+  });
+
+  Future<Map<String, String>> _getHeaders({bool isJson = true}) async {
+    final token = await authRepository.getSavedToken();
+    return {
+      ...ApiConfig.defaultHeaders,
+      if (isJson) 'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  // 1. API Kiểm tra CV
+  @override
+  Future<List<SubmittedCvModel>> getMySubmittedCvs() async {
+    final uri =
+    ApiConfig.endpoint('api/v1/project-applications/my-submitted-cvs');
+
+    try {
+      final response = await client.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final dataList = decoded['data'] as List<dynamic>;
+        return dataList
+            .map((json) => SubmittedCvModel.fromJson(json))
+            .toList();
+      } else {
+        // Trường hợp success=true nhưng data rỗng (chưa có CV) thì trả về []
+        if (decoded['data'] is List && (decoded['data'] as List).isEmpty) {
+          return [];
+        }
+        throw ServerException(
+          decoded['message'] ?? 'Lỗi kiểm tra danh sách CV',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException('Lỗi không xác định khi lấy danh sách CV: $e');
+    }
+  }
+
+  // 2. API Apply Dự án
+  @override
+  Future<void> applyProject({
+    required String userId,
+    required String projectId,
+    required String cvUrl,
+  }) async {
+    final uri = ApiConfig.endpoint('api/v1/project-applications/apply');
+    final body = json.encode({
+      'userId': userId,
+      'projectId': projectId,
+      'cvUrl': cvUrl,
+    });
+
+    try {
+      final response = await client.post(
+        uri,
+        headers: await _getHeaders(),
+        body: body,
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          'Apply Project Response: '
+              '${response.statusCode} - ${utf8.decode(response.bodyBytes)}',
+        );
+      }
+
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      // Ở đây backend đang trả 200, nếu sau này đổi sang 201
+      // có thể nới điều kiện tương tự như upload.
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        throw ServerException(
+          decoded['message'] ?? 'Ứng tuyển thất bại',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException('Lỗi không xác định khi ứng tuyển: $e');
+    }
+  }
+
+  // 3. API Upload CV (Multipart)
+  @override
+  Future<UploadedFileModel> uploadCvFile(File file) async {
+    final uri = ApiConfig.endpoint('api/v1/files/upload');
+    final token = await authRepository.getSavedToken();
+
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll({
+      ...ApiConfig.defaultHeaders,
+      // Content-Type cho multipart thường được tự set
+      if (token != null) 'Authorization': 'Bearer $token',
+    });
+
+    // 'file' là tên field mà backend yêu cầu
+    request.files.add(
+      await http.MultipartFile.fromPath('file', file.path),
+    );
+
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (kDebugMode) {
+        debugPrint(
+          'Upload CV Response: '
+              '${response.statusCode} - ${utf8.decode(response.bodyBytes)}',
+        );
+      }
+
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          decoded['success'] == true) {
+        return UploadedFileModel.fromJson(decoded);
+      } else {
+        throw ServerException(
+          decoded['message'] ?? 'Upload thất bại',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException('Lỗi kết nối khi upload: $e');
+    }
+  }
+}

@@ -10,6 +10,14 @@ import '../../features/hiring_projects/data/repositories_impl/project_repository
 import '../../features/hiring_projects/domain/repositories/project_repository.dart';
 import '../../features/hiring_projects/domain/use_cases/get_hiring_projects.dart';
 import '../../features/hiring_projects/presentation/cubit/hiring_projects_cubit.dart';
+import '../../features/project_application/data/data_sources/project_application_remote_data_source.dart';
+import '../../features/project_application/data/repositories/project_application_repository_impl.dart';
+import '../../features/project_application/domain/repositories/project_application_repository.dart';
+import '../../features/project_application/domain/use_cases/apply_project_use_case.dart';
+import '../../features/project_application/domain/use_cases/get_my_submitted_cvs_use_case.dart';
+import '../../features/project_application/domain/use_cases/upload_cv_use_case.dart';
+import '../../features/project_application/presentation/cubit/project_application_cubit.dart';
+import '../../main.dart';
 import '../services/realtime/stomp_notification_service.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
@@ -162,8 +170,70 @@ Future<void> init() async {
     ),
   );
 
+// Features - Project Application
+// // Bloc
+//   sl.registerFactory(() => ProjectApplicationCubit(
+//     getCvsUseCase: sl(),
+//     applyProjectUseCase: sl(),
+//     uploadCvUseCase: sl(),
+//   ));
+//
+// // Use Cases
+//   sl.registerLazySingleton(() => GetMySubmittedCvsUseCase(repository: sl()));
+// // Lưu ý: Inject thêm AuthRepository cho ApplyProjectUseCase
+//   sl.registerLazySingleton(() => ApplyProjectUseCase(repository: sl(), authRepository: sl()));
+//   sl.registerLazySingleton(() => UploadCvUseCase(repository: sl()));
+//
+// // Repository
+//   sl.registerLazySingleton<ProjectApplicationRepository>(
+//           () => ProjectApplicationRepositoryImpl(remoteDataSource: sl()));
+//
+// // Data Source
+//   sl.registerLazySingleton<ProjectApplicationRemoteDataSource>(
+//           () => ProjectApplicationRemoteDataSourceImpl(client: sl(), authRepository: sl()));
+  // 1. Data source
+  getIt.registerLazySingleton<ProjectApplicationRemoteDataSource>(
+        () => ProjectApplicationRemoteDataSourceImpl(
+      client: getIt<http.Client>(),
+      authRepository: getIt<AuthRepository>(),
+    ),
+  );
 
+  // 2. Repository
+  getIt.registerLazySingleton<ProjectApplicationRepository>(
+        () => ProjectApplicationRepositoryImpl(
+      remoteDataSource: getIt<ProjectApplicationRemoteDataSource>(),
+    ),
+  );
 
+  // 3. Use cases
+  getIt.registerLazySingleton<GetMySubmittedCvsUseCase>(
+        () => GetMySubmittedCvsUseCase(
+      repository: getIt<ProjectApplicationRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<ApplyProjectUseCase>(
+        () => ApplyProjectUseCase(
+      repository: getIt<ProjectApplicationRepository>(),
+      authRepository: getIt<AuthRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<UploadCvUseCase>(
+        () => UploadCvUseCase(
+      repository: getIt<ProjectApplicationRepository>(),
+    ),
+  );
+
+  // 4. Cubit
+  getIt.registerFactory<ProjectApplicationCubit>(
+        () => ProjectApplicationCubit(
+      getCvsUseCase: getIt<GetMySubmittedCvsUseCase>(),
+      applyProjectUseCase: getIt<ApplyProjectUseCase>(),
+      uploadCvUseCase: getIt<UploadCvUseCase>(),
+    ),
+  );
 
   // 🧩 WebSocket / STOMP Service
   getIt.registerLazySingleton(() => StompNotificationService());

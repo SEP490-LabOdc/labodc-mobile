@@ -182,6 +182,7 @@ class AppRouter {
             return ProjectDetailPage(projectId: id);
           },
         ),
+
       ],
     );
   }

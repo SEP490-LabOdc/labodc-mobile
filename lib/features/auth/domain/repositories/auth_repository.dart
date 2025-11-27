@@ -5,4 +5,5 @@ abstract class AuthRepository {
   Future<AuthEntity> refreshToken(String refreshToken, String userId);
   Future<AuthEntity> loginWithGoogle(String googleToken);
   Future<String?> getSavedToken();
+
 }

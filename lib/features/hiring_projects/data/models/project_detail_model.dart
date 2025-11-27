@@ -13,7 +13,6 @@ class ProjectDetailModel {
   final double? budget;
   final List<SkillModel> skills;
   final List<dynamic> mentors;
-  // Các trường bổ sung từ JSON
   final String? companyName;
   final String? currentMilestoneName;
   final DateTime createdAt;
@@ -48,7 +47,6 @@ class ProjectDetailModel {
       budget: (json['budget'] as num?)?.toDouble(),
       skills: (json['skills'] as List?)?.map((e) => SkillModel.fromJson(e)).toList() ?? [],
       mentors: json['mentors'] ?? [],
-      // Parse các trường mới
       companyName: json['companyName'],
       currentMilestoneName: json['currentMilestoneName'],
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
