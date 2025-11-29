@@ -14,6 +14,7 @@ class Routes {
   static const String setting = '/setting';
   static const String labAdmin = '/lab-admin';
   static const String uploadCv = '/upload-cv';
+  static const String editProfile = '/edit-profile';
 
   // Route names
   static const String splashName = 'splash';
@@ -30,6 +31,7 @@ class Routes {
   static const String settingName = 'setting';
   static const String labAdminName = 'lab-admin';
   static const String uploadCvName = 'upload-cv';
+  static const String editProfileName = 'edit-profile';
 
   // Public routes (không cần authentication)
   static const List<String> publicRoutes = [

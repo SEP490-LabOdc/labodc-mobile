@@ -25,13 +25,15 @@ import '../../features/notification/domain/use_cases/get_notifications.dart';
 import '../../features/notification/domain/use_cases/register_device_token_use_case.dart';
 
 // Constants
+import '../../features/user_profile/data/models/user_profile_model.dart';
+import '../../features/user_profile/presentation/pages/edit_profile_page.dart';
 import 'route_constants.dart';
 
 final sl = GetIt.instance;
 
 class AppRouter {
   static final GlobalKey<NavigatorState> _rootNavigatorKey =
-  GlobalKey<NavigatorState>();
+      GlobalKey<NavigatorState>();
 
   static GoRouter createRouter(AuthProvider authProvider) {
     debugPrint('AppRouter: Bắt đầu tạo GoRouter.');
@@ -75,8 +77,7 @@ class AppRouter {
             return BlocProvider(
               create: (_) => NotificationCubit(
                 getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase:
-                sl<RegisterDeviceTokenUseCase>(),
+                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
                 userId: user.userId,
                 authToken: user.accessToken,
               ),
@@ -92,15 +93,16 @@ class AppRouter {
           builder: (context, state) {
             final user = authProvider.currentUser;
             if (user == null) {
-              debugPrint("⚠️ AuthProvider chưa có user, chuyển hướng về login.");
+              debugPrint(
+                "⚠️ AuthProvider chưa có user, chuyển hướng về login.",
+              );
               return const LoginPage();
             }
 
             return BlocProvider(
               create: (_) => NotificationCubit(
                 getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase:
-                sl<RegisterDeviceTokenUseCase>(),
+                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
                 userId: user.userId,
                 authToken: user.accessToken,
               ),
@@ -120,8 +122,7 @@ class AppRouter {
             return BlocProvider(
               create: (_) => NotificationCubit(
                 getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase:
-                sl<RegisterDeviceTokenUseCase>(),
+                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
                 userId: user.userId,
                 authToken: user.accessToken,
               ),
@@ -141,8 +142,7 @@ class AppRouter {
             return BlocProvider(
               create: (_) => NotificationCubit(
                 getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase:
-                sl<RegisterDeviceTokenUseCase>(),
+                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
                 userId: user.userId,
                 authToken: user.accessToken,
               ),
@@ -162,8 +162,7 @@ class AppRouter {
             return BlocProvider(
               create: (_) => NotificationCubit(
                 getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase:
-                sl<RegisterDeviceTokenUseCase>(),
+                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
                 userId: user.userId,
                 authToken: user.accessToken,
               ),
@@ -182,6 +181,13 @@ class AppRouter {
             return ProjectDetailPage(projectId: id);
           },
         ),
+        GoRoute(
+          path: Routes.editProfile,
+          builder: (context, state) {
+            final user = state.extra as UserProfileModel;
+            return EditProfilePage(user: user);
+          },
+        ),
 
       ],
     );
@@ -190,19 +196,19 @@ class AppRouter {
   // === PRIVATE METHODS ===
 
   static String? _handleRedirect(
-      GoRouterState state,
-      AuthProvider authProvider,
-      ) {
+    GoRouterState state,
+    AuthProvider authProvider,
+  ) {
     final currentPath = state.uri.toString();
     final isAuthenticated = authProvider.isAuthenticated;
     final role = authProvider.currentUser?.role;
     final targetHomeRoute = getHomeRouteByRole(role);
 
     debugPrint(
-        'AppRouter Redirect: $currentPath | Auth: $isAuthenticated | Role: $role | Init: ${authProvider.isInitialCheckComplete}');
+      'AppRouter Redirect: $currentPath | Auth: $isAuthenticated | Role: $role | Init: ${authProvider.isInitialCheckComplete}',
+    );
 
-    if (currentPath == Routes.splash &&
-        !authProvider.isInitialCheckComplete) {
+    if (currentPath == Routes.splash && !authProvider.isInitialCheckComplete) {
       return null; // Chờ Splash load
     }
 
@@ -212,8 +218,7 @@ class AppRouter {
     }
 
     // 2️⃣ Đã login nhưng vẫn ở login
-    if (isAuthenticated &&
-        (currentPath == Routes.login)) {
+    if (isAuthenticated && (currentPath == Routes.login)) {
       return targetHomeRoute;
     }
 

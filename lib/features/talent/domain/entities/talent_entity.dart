@@ -10,6 +10,9 @@ class TalentEntity {
   final String avatarUrl;
   final String role;
   final String gender;
+  final String address;
+
+
 
   const TalentEntity({
     required this.id,
@@ -20,5 +23,6 @@ class TalentEntity {
     required this.avatarUrl,
     required this.role,
     required this.gender,
+    required this.address,
   });
 }

@@ -17,6 +17,11 @@ import '../../features/project_application/domain/use_cases/apply_project_use_ca
 import '../../features/project_application/domain/use_cases/get_my_submitted_cvs_use_case.dart';
 import '../../features/project_application/domain/use_cases/upload_cv_use_case.dart';
 import '../../features/project_application/presentation/cubit/project_application_cubit.dart';
+import '../../features/user_profile/data/datasources/user_profile_remote_data_source.dart';
+import '../../features/user_profile/data/repositories/user_profile_repository_impl.dart';
+import '../../features/user_profile/domain/repositories/user_profile_repository.dart';
+import '../../features/user_profile/domain/use_cases/update_user_profile_use_case.dart';
+import '../../features/user_profile/presentation/cubit/user_profile_cubit.dart';
 import '../../main.dart';
 import '../services/realtime/stomp_notification_service.dart';
 import '../theme/bloc/theme_bloc.dart';
@@ -233,6 +238,25 @@ Future<void> init() async {
       applyProjectUseCase: getIt<ApplyProjectUseCase>(),
       uploadCvUseCase: getIt<UploadCvUseCase>(),
     ),
+  );
+
+  //User Profile
+  // data source
+  getIt.registerLazySingleton<UserProfileRemoteDataSource>(
+        () => UserProfileRemoteDataSourceImpl(client: getIt<http.Client>(), authRepository: getIt<AuthRepository>()),
+  );
+
+  // repository
+  getIt.registerLazySingleton<UserProfileRepository>(
+        () => UserProfileRepositoryImpl(remoteDataSource: getIt()),
+  );
+  getIt.registerLazySingleton<UpdateUserProfileUseCase>(
+        () => UpdateUserProfileUseCase(getIt<UserProfileRepository>()),
+  );
+
+  // cubit
+  getIt.registerFactory<UserProfileCubit>(
+        () => UserProfileCubit(repository: getIt(), userId: getIt<AuthProvider>().userId),
   );
 
   // 🧩 WebSocket / STOMP Service

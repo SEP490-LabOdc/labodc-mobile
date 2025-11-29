@@ -12,6 +12,7 @@ class TalentModel extends TalentEntity {
     required super.avatarUrl,
     required super.role,
     required super.gender,
+    required super.address
   });
 
   factory TalentModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +27,7 @@ class TalentModel extends TalentEntity {
       role: data['role'] as String,
       gender: data['gender'] as String,
       birthDate: DateTime.parse(data['birthDate'] as String),
+      address: data['address'] as String,
     );
   }
 }
