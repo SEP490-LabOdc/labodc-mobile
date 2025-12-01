@@ -2,8 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:go_router/go_router.dart';
 
 // 🔥 PHẦN MỚI: Import NotificationBell
+import '../../../../core/router/route_constants.dart';
 import '../../../notification/presentation/widgets/notification_bell.dart';
 
 // Import các widget con đã tách
@@ -41,11 +43,10 @@ class _DashboardPageState extends State<DashboardPage> {
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         elevation: 0,
-        actions: [
-          // 🔥 THAY THẾ: Sử dụng NotificationBell
-          const NotificationBell(iconSize: 24),
-          const SizedBox(width: 8),
-        ],
+          actions: [
+            const NotificationBell(iconSize: 24),
+            const SizedBox(width: 8),
+          ]
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,

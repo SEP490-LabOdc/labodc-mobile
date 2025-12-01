@@ -53,4 +53,27 @@ class ProjectApplicationRepositoryImpl implements ProjectApplicationRepository {
       return Left(ServerFailure(e.toString(), 500));
     }
   }
+
+  @override
+  Future<Either<Failure, bool>> hasAppliedProject(
+      String projectId,
+      ) async {
+    try {
+      final status =
+      await remoteDataSource.getApplicationStatus(projectId);
+
+      // Core logic:
+      // canApply == true  -> user CHƯA apply -> hasApplied = false
+      // canApply == false -> user ĐÃ apply  -> hasApplied = true
+      final hasApplied = !status.canApply;
+
+      return Right(hasApplied);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
 }

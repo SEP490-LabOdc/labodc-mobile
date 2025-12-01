@@ -8,4 +8,6 @@ abstract class ProjectApplicationRepository {
   Future<Either<Failure, List<SubmittedCvModel>>> getMySubmittedCvs();
   Future<Either<Failure, void>> applyProject({required String userId, required String projectId, required String cvUrl});
   Future<Either<Failure, UploadedFileModel>> uploadCv(File file);
+  Future<Either<Failure, bool>> hasAppliedProject(String projectId);
+
 }

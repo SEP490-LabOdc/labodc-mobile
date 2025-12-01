@@ -11,9 +11,10 @@ import '../../../../core/error/failures.dart';
 import '../../../auth/presentation/provider/auth_provider.dart';
 
 // 2. Hiring Project Feature
+import '../../../project_application/domain/repositories/project_application_repository.dart';
+import '../../data/models/project_model.dart';
 import '../../domain/repositories/project_repository.dart';
 import '../../data/models/project_detail_model.dart';
-import '../../data/models/project_model.dart';
 
 // 3. Project Application Feature
 import '../../../project_application/presentation/cubit/project_application_cubit.dart';
@@ -65,12 +66,17 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
   bool _loading = true;
   String? _error;
 
+  bool _hasApplied = false;
+  bool _checkingApplied = false;
+
   @override
   void initState() {
     super.initState();
     debugPrint('[ProjectDetailView] initState, projectId = ${widget.projectId}');
     _fetchProjectData();
   }
+
+  // ================== LOAD PROJECT DETAIL ==================
 
   Future<void> _fetchProjectData() async {
     debugPrint('[ProjectDetailView] _fetchProjectData() START');
@@ -94,6 +100,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           _error = _mapFailureToMessage(failure);
           _loading = false;
         });
+        // ❌ KHÔNG gọi _checkAppliedStatus() ở đây vì _project vẫn null
       },
           (data) {
         debugPrint('[ProjectDetailView] _fetchProjectData() SUCCESS, projectId = ${data.id}');
@@ -101,11 +108,53 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           _project = data;
           _loading = false;
         });
+
+        // ✅ Sau khi có project -> check xem user đã apply chưa
+        _checkAppliedStatus();
       },
     );
 
     debugPrint('[ProjectDetailView] _fetchProjectData() END');
   }
+
+  // ================== CHECK ĐÃ ỨNG TUYỂN CHƯA ==================
+
+  Future<void> _checkAppliedStatus() async {
+    if (_project == null) return;
+
+    setState(() {
+      _checkingApplied = true;
+    });
+
+    final appRepository = getIt<ProjectApplicationRepository>();
+    final result = await appRepository.hasAppliedProject(_project!.id);
+
+    if (!mounted) return;
+
+    result.fold(
+          (failure) {
+        if (kDebugMode) {
+          debugPrint('[ProjectDetailView] hasAppliedProject FAILURE: $failure');
+        }
+        // UX kiểu big company: lỗi thì im lặng, coi như chưa apply
+        setState(() {
+          _checkingApplied = false;
+          _hasApplied = false;
+        });
+      },
+          (hasApplied) {
+        if (kDebugMode) {
+          debugPrint('[ProjectDetailView] hasAppliedProject SUCCESS: $hasApplied');
+        }
+        setState(() {
+          _hasApplied = hasApplied;
+          _checkingApplied = false;
+        });
+      },
+    );
+  }
+
+  // ================== COMMON UTILS ==================
 
   String _mapFailureToMessage(Failure failure) {
     debugPrint('[ProjectDetailView] _mapFailureToMessage: $failure');
@@ -402,7 +451,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     required String fileName,
     required String cvUrl,
   }) {
-    debugPrint('[ProjectDetailView] _showApplyConfirmationModal: fileName=$fileName, cvUrl=$cvUrl');
+    debugPrint(
+        '[ProjectDetailView] _showApplyConfirmationModal: fileName=$fileName, cvUrl=$cvUrl');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -412,13 +462,15 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         child: BlocBuilder<ProjectApplicationCubit, ProjectApplicationState>(
           builder: (context, modalState) {
             final isApplying = modalState is ProjectApplicationLoading;
-            debugPrint('[ProjectDetailView] ApplyConfirmationModal build, isApplying=$isApplying');
+            debugPrint(
+                '[ProjectDetailView] ApplyConfirmationModal build, isApplying=$isApplying');
             return ApplyConfirmationModal(
               project: _project!,
               fileName: fileName,
               isApplying: isApplying,
               onConfirm: () {
-                debugPrint('[ProjectDetailView] onConfirm APPLY -> applyToProject');
+                debugPrint(
+                    '[ProjectDetailView] onConfirm APPLY -> applyToProject');
                 context
                     .read<ProjectApplicationCubit>()
                     .applyToProject(widget.projectId, cvUrl);
@@ -440,11 +492,13 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     debugPrint('[ProjectDetailView] _pickAndUploadCvForSheet() START');
     try {
       final FilePickerResult? result = await FilePicker.platform.pickFiles();
-      debugPrint('[ProjectDetailView] FilePicker result: ${result == null ? 'null (user cancel)' : 'OK'}');
+      debugPrint(
+          '[ProjectDetailView] FilePicker result: ${result == null ? 'null (user cancel)' : 'OK'}');
       if (result == null) return; // user cancel
 
       final PlatformFile pickedFile = result.files.single;
-      debugPrint('[ProjectDetailView] Picked file: name=${pickedFile.name}, path=${pickedFile.path}');
+      debugPrint(
+          '[ProjectDetailView] Picked file: name=${pickedFile.name}, path=${pickedFile.path}');
 
       if (pickedFile.path == null) {
         _showSnackBar(
@@ -455,7 +509,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       }
 
       final file = File(pickedFile.path!);
-      debugPrint('[ProjectDetailView] UploadCvUseCase.call() with file.path=${file.path}');
+      debugPrint(
+          '[ProjectDetailView] UploadCvUseCase.call() with file.path=${file.path}');
 
       // Gọi use case upload trực tiếp
       final uploadUseCase = getIt<UploadCvUseCase>();
@@ -467,7 +522,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           _showSnackBar(_mapFailureToMessage(failure), isError: true);
         },
             (uploaded) {
-          debugPrint('[ProjectDetailView] uploadResult SUCCESS: fileName=${uploaded.fileName}, fileUrl=${uploaded.fileUrl}');
+          debugPrint(
+              '[ProjectDetailView] uploadResult SUCCESS: fileName=${uploaded.fileName}, fileUrl=${uploaded.fileUrl}');
           // Thêm CV mới vào list local + chọn nó
           setModalState(() {
             localCvs.add(
@@ -477,7 +533,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
               ),
             );
             final idx = localCvs.length - 1;
-            debugPrint('[ProjectDetailView] localCvs length after add: ${localCvs.length}, newIndex=$idx');
+            debugPrint(
+                '[ProjectDetailView] localCvs length after add: ${localCvs.length}, newIndex=$idx');
             onCvAdded(idx);
           });
 
@@ -487,18 +544,20 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         },
       );
     } catch (e, st) {
-      debugPrint('[ProjectDetailView] Error in _pickAndUploadCvForSheet: $e\n$st');
+      debugPrint(
+          '[ProjectDetailView] Error in _pickAndUploadCvForSheet: $e\n$st');
       _showSnackBar('Không thể chọn hoặc upload CV: $e', isError: true);
     } finally {
       debugPrint('[ProjectDetailView] _pickAndUploadCvForSheet() END');
     }
   }
 
-  // ================== SHEET CHỌN CV (MY-SUBMITTED-CVS + CV MỚI LOCAL) ==================
+  // ================== SHEET CHỌN CV ==================
 
   void _showCvSelectionSheet(List<SubmittedCvModel> initialCvs) {
     final theme = Theme.of(context);
-    debugPrint('[ProjectDetailView] _showCvSelectionSheet() initialCvs.length=${initialCvs.length}');
+    debugPrint(
+        '[ProjectDetailView] _showCvSelectionSheet() initialCvs.length=${initialCvs.length}');
 
     // copy từ my-submitted-cvs ra list local
     final List<SubmittedCvModel> localCvs = List.of(initialCvs);
@@ -509,10 +568,12 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (modalContext) {
-        debugPrint('[ProjectDetailView] BottomSheet builder: localCvs.length=${localCvs.length}');
+        debugPrint(
+            '[ProjectDetailView] BottomSheet builder: localCvs.length=${localCvs.length}');
         return StatefulBuilder(
           builder: (context, setModalState) {
-            debugPrint('[ProjectDetailView] StatefulBuilder build: localCvs.length=${localCvs.length}, selectedIndex=$selectedIndex');
+            debugPrint(
+                '[ProjectDetailView] StatefulBuilder build: localCvs.length=${localCvs.length}, selectedIndex=$selectedIndex');
             return Container(
               padding: EdgeInsets.only(
                 left: 16,
@@ -590,16 +651,19 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                           const SizedBox(height: 4),
                           itemBuilder: (context, index) {
                             final cv = localCvs[index];
-                            debugPrint('[ProjectDetailView] build CV tile index=$index, fileName=${cv.fileName}');
+                            debugPrint(
+                                '[ProjectDetailView] build CV tile index=$index, fileName=${cv.fileName}');
                             return RadioListTile<int>(
                               value: index,
                               groupValue: selectedIndex,
                               onChanged: (value) {
-                                debugPrint('[ProjectDetailView] onChanged RadioListTile: value=$value');
+                                debugPrint(
+                                    '[ProjectDetailView] onChanged RadioListTile: value=$value');
                                 if (value == null) return;
                                 setModalState(() {
                                   selectedIndex = value;
-                                  debugPrint('[ProjectDetailView] selectedIndex updated -> $selectedIndex');
+                                  debugPrint(
+                                      '[ProjectDetailView] selectedIndex updated -> $selectedIndex');
                                 });
                               },
                               dense: true,
@@ -630,12 +694,14 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () async {
-                              debugPrint('[ProjectDetailView] [Sheet] Upload CV mới pressed');
+                              debugPrint(
+                                  '[ProjectDetailView] [Sheet] Upload CV mới pressed');
                               await _pickAndUploadCvForSheet(
                                 setModalState: setModalState,
                                 localCvs: localCvs,
                                 onCvAdded: (newIndex) {
-                                  debugPrint('[ProjectDetailView] [Sheet] onCvAdded, newIndex=$newIndex');
+                                  debugPrint(
+                                      '[ProjectDetailView] [Sheet] onCvAdded, newIndex=$newIndex');
                                   selectedIndex = newIndex;
                                 },
                               );
@@ -686,34 +752,62 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
 
     final authProvider = context.watch<AuthProvider>();
     final role = (authProvider.currentUser?.role ?? '').toUpperCase();
-    debugPrint('[ProjectDetailView] build(), role=$role, loading=$_loading, error=$_error');
+    debugPrint(
+        '[ProjectDetailView] build(), role=$role, loading=$_loading, error=$_error, hasApplied=$_hasApplied, checkingApplied=$_checkingApplied');
 
     final canApplyRole = role == 'TALENT' || role == 'USER';
-    final isProjectPending =
-        ((_project?.status) ?? '').toUpperCase() == 'PENDING';
 
-    final canShowApplyButton =
-        canApplyRole && _project != null && !_loading && _error == null && isProjectPending;
-    debugPrint('[ProjectDetailView] canShowApplyButton=$canShowApplyButton');
+
+    // Chỉ show khu apply nếu:
+    // - User có role phù hợp
+    // - Có project
+    // - Không loading, không lỗi
+    // - Không đang check hasApplied
+    final canShowBottomArea = canApplyRole &&
+        _project != null &&
+        !_loading &&
+        _error == null &&
+        !_checkingApplied;
+
+    // Có thể apply nếu:
+    // - Thỏa điều kiện trên
+    // - Chưa apply
+    final canApplyThisProject =
+        canShowBottomArea && !_hasApplied;
 
     return BlocListener<ProjectApplicationCubit, ProjectApplicationState>(
       listener: (context, state) async {
-        debugPrint('[ProjectDetailView] BlocListener state: ${state.runtimeType}');
+        debugPrint(
+            '[ProjectDetailView] BlocListener state: ${state.runtimeType}');
         if (state is ProjectApplicationLoading) {
           debugPrint('[ProjectDetailView] state = ProjectApplicationLoading');
         } else if (state is ProjectApplicationCvCheckSuccess) {
-          debugPrint('[ProjectDetailView] state = ProjectApplicationCvCheckSuccess, cvs.length=${state.cvs.length}');
+          debugPrint(
+              '[ProjectDetailView] state = ProjectApplicationCvCheckSuccess, cvs.length=${state.cvs.length}');
           // Luôn mở sheet chọn CV với danh sách my-submitted-cvs
           _showCvSelectionSheet(state.cvs);
         } else if (state is ProjectApplicationApplySuccess) {
-          debugPrint('[ProjectDetailView] state = ProjectApplicationApplySuccess -> pop modal & show snackbar');
+          debugPrint(
+              '[ProjectDetailView] state = ProjectApplicationApplySuccess -> pop modal & show snackbar');
           if (Navigator.canPop(context)) {
             Navigator.pop(context); // đóng modal xác nhận
           }
           _showSnackBar('Ứng tuyển thành công!');
+
+          // ✅ Sau khi apply thành công, refresh trạng thái hasApplied
+          await _checkAppliedStatus();
         } else if (state is ProjectApplicationFailure) {
-          debugPrint('[ProjectDetailView] state = ProjectApplicationFailure, message=${state.message}');
+          debugPrint(
+              '[ProjectDetailView] state = ProjectApplicationFailure, message=${state.message}');
           _showSnackBar(state.message, isError: true);
+
+          // ✅ Nếu backend trả: "Bạn đã ứng tuyển vào dự án này."
+          // => vẫn nên đánh dấu là đã apply
+          if (state.message
+              .toLowerCase()
+              .contains('bạn đã ứng tuyển vào dự án này')) {
+            await _checkAppliedStatus();
+          }
         }
       },
       child: Scaffold(
@@ -815,11 +909,13 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             ],
           ),
         ),
-        floatingActionButton: canShowApplyButton
+        floatingActionButton: !canShowBottomArea
+            ? null
+            : canApplyThisProject
             ? FloatingActionButton.extended(
           onPressed: () {
-            debugPrint('[ProjectDetailView] FAB "Ứng tuyển ngay" pressed -> checkCvAvailability');
-            // Bắt đầu: gọi use case my-submitted-cvs qua Cubit
+            debugPrint(
+                '[ProjectDetailView] FAB "Ứng tuyển ngay" pressed -> checkCvAvailability');
             context
                 .read<ProjectApplicationCubit>()
                 .checkCvAvailability();
@@ -830,7 +926,18 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           foregroundColor: theme.colorScheme.onPrimary,
           elevation: 4,
         )
-            : null,
+            : FloatingActionButton.extended(
+          onPressed: () {
+            _showSnackBar(
+              'Bạn đã ứng tuyển dự án này. Vui lòng chờ phản hồi từ công ty.',
+            );
+          },
+          label: const Text('Đã ứng tuyển'),
+          icon: const Icon(Icons.check_circle_outline),
+          backgroundColor: Colors.grey.shade400,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
       ),
     );
   }

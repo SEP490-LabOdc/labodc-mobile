@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/config/networks/config.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../models/project_application_status_model.dart';
 import '../models/submitted_cv_model.dart';
 import '../models/uploaded_file_model.dart';
 
@@ -18,6 +19,9 @@ abstract class ProjectApplicationRemoteDataSource {
     required String cvUrl,
   });
   Future<UploadedFileModel> uploadCvFile(File file);
+  Future<bool> hasAppliedProject(String projectId);
+  Future<ProjectApplicationStatusModel> getApplicationStatus(String projectId);
+
 }
 
 class ProjectApplicationRemoteDataSourceImpl
@@ -168,6 +172,95 @@ class ProjectApplicationRemoteDataSourceImpl
     } catch (e) {
       if (e is ServerException || e is NetworkException) rethrow;
       throw ServerException('Lỗi kết nối khi upload: $e');
+    }
+  }
+  @override
+  Future<bool> hasAppliedProject(String projectId) async {
+    final uri = ApiConfig.endpoint(
+      'api/v1/projects/my-applications?page=1&size=50',
+    );
+
+    try {
+      final response = await client.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      final body = utf8.decode(response.bodyBytes);
+      if (kDebugMode) {
+        debugPrint(
+          '[ProjectApplicationRemoteDataSource] GET $uri -> '
+              '${response.statusCode} - $body',
+        );
+      }
+
+      final decoded = json.decode(body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final dataWrapper = decoded['data'] as Map<String, dynamic>;
+        final list = dataWrapper['data'] as List<dynamic>;
+
+        // ✅ Kiểm tra có projectId trùng không
+        final alreadyApplied = list.any(
+              (item) => item['projectId']?.toString() == projectId,
+        );
+        return alreadyApplied;
+      } else {
+        final msg = decoded['message']?.toString() ??
+            'Không thể lấy danh sách đơn ứng tuyển';
+        throw ServerException(msg, statusCode: response.statusCode);
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException(
+        'Lỗi không xác định khi kiểm tra đơn ứng tuyển: $e',
+      );
+    }
+  }
+
+  @override
+  Future<ProjectApplicationStatusModel> getApplicationStatus(
+      String projectId,
+      ) async {
+    final uri = ApiConfig.endpoint(
+      'api/v1/projects/$projectId/application-status',
+    );
+
+    try {
+      final response = await client.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      final decoded =
+      json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+
+      if (kDebugMode) {
+        debugPrint(
+          'ApplicationStatus Response: '
+              '${response.statusCode} - ${utf8.decode(response.bodyBytes)}',
+        );
+      }
+
+      final dataJson = decoded['data'] as Map<String, dynamic>?;
+
+      if (dataJson == null) {
+        throw ServerException(
+          'Không đọc được dữ liệu trạng thái ứng tuyển',
+          statusCode: response.statusCode,
+        );
+      }
+
+      return ProjectApplicationStatusModel.fromJson(dataJson);
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException(
+        'Lỗi không xác định khi kiểm tra trạng thái ứng tuyển: $e',
+      );
     }
   }
 }

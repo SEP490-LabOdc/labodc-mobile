@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/router/route_constants.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../websocket/cubit/websocket_notification_cubit.dart';
 
@@ -304,7 +306,10 @@ class _NotificationBellState extends State<NotificationBell> {
               notifications.where((n) => !n.readStatus).length;
 
           return InkWell(
-            onTap: () => _toggleDropdown(context),
+            // onTap: () => _toggleDropdown(context),
+            onTap: () {
+              context.push(Routes.notifications);
+            },
             borderRadius: BorderRadius.circular(20),
             child: Padding(
               padding: const EdgeInsets.all(8),

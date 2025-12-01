@@ -11,6 +11,7 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/company/presentation/pages/company_main_page.dart';
 import '../../features/mentor/presentation/pages/mentor_main_page.dart';
+import '../../features/notification/presentation/pages/notification_page.dart';
 import '../../features/talent/presentation/pages/talent_main_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
 import '../../common/presentation/pages/setting_page.dart';
@@ -186,6 +187,24 @@ class AppRouter {
           builder: (context, state) {
             final user = state.extra as UserProfileModel;
             return EditProfilePage(user: user);
+          },
+        ),
+        GoRoute(
+        path: Routes.notifications,
+          name: Routes.notificationsName,
+          builder: (context, state) {
+            final user = authProvider.currentUser;
+            if (user == null) return const LoginPage();
+
+            return BlocProvider(
+              create: (_) => NotificationCubit(
+                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
+                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
+                userId: user.userId,
+                authToken: user.accessToken,
+              ),
+              child: const NotificationPage(),
+            );
           },
         ),
 

@@ -43,6 +43,9 @@ class ProjectDataFormatter {
       case 'COMPLETED':
       case 'HOÀN THÀNH':
         return Colors.blue;
+      case 'PLANNING':
+      case 'ĐANG LẬP KẾ HOẠCH':
+        return Colors.purple;
       case 'CANCELLED':
       case 'ĐÃ HỦY':
         return Colors.red;
@@ -54,6 +57,7 @@ class ProjectDataFormatter {
   static String translateStatus(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING': return 'Đang chờ';
+      case 'PLANNING': return 'Đang lập kế hoạch';
       case 'ACTIVE': return 'Hoạt động';
       case 'COMPLETED': return 'Hoàn thành';
       case 'CANCELLED': return 'Đã hủy';
