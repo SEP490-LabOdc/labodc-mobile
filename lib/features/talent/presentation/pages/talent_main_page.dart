@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labodc_mobile/features/talent/presentation/pages/profile_page.dart';
+import 'package:labodc_mobile/features/user_profile/presentation/pages/profile_page.dart';
 import 'package:labodc_mobile/features/talent/presentation/pages/tasks_page.dart';
 
 import 'dashboard_page.dart';

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_approvals_page.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_chat_page.dart';
-import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_profile_page.dart';
-
+import '../../../user_profile/presentation/pages/profile_page.dart';
 import 'mentor_dashboard_page.dart';
 
 
@@ -20,7 +19,7 @@ class _MentorMainPageState extends State<MentorMainPage> {
     const MentorDashboardPage(),
     const MentorApprovalsPage(),
     const MentorChatPage(),
-    const MentorProfilePage(),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {

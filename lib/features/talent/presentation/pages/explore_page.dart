@@ -71,7 +71,7 @@ class _ExplorePageState extends State<ExplorePage> {
                             const SizedBox(height: 24),
 
                             // 3. Suggested Talents Section
-                            _buildSuggestedTalentsSection(theme),
+                            // _buildSuggestedTalentsSection(theme),
                           ],
                         ),
                       ),
@@ -85,7 +85,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // ... _buildSliverAppBar và _buildQuickFilters (giữ nguyên) ...
   Widget _buildSliverAppBar(ThemeData theme) {
     return SliverAppBar(
       title: const Text("Khám phá", style: TextStyle(fontWeight: FontWeight.bold),),
@@ -226,30 +225,30 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _buildSuggestedTalentsSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Talent khác: Có thể bạn muốn kết nối",
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        const TalentListItem(
-          name: "Trần Thị B",
-          role: "Chuyên gia Backend (Java/Spring)",
-          avatarUrl: "https://randomuser.me/api/portraits/women/12.jpg",
-          skills: ["Java", "Spring Boot", "REST API", "MongoDB"],
-        ),
-        const TalentListItem(
-          name: "Lê Văn C",
-          role: "Frontend & Mobile (React Native)",
-          avatarUrl: "https://randomuser.me/api/portraits/men/45.jpg",
-          skills: ["React Native", "TypeScript", "Redux", "CI/CD"],
-        ),
-      ],
-    );
-  }
+  // Widget _buildSuggestedTalentsSection(ThemeData theme) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         "Talent khác: Có thể bạn muốn kết nối",
+  //         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+  //       ),
+  //       const SizedBox(height: 12),
+  //       const TalentListItem(
+  //         name: "Trần Thị B",
+  //         role: "Chuyên gia Backend (Java/Spring)",
+  //         avatarUrl: "https://randomuser.me/api/portraits/women/12.jpg",
+  //         skills: ["Java", "Spring Boot", "REST API", "MongoDB"],
+  //       ),
+  //       const TalentListItem(
+  //         name: "Lê Văn C",
+  //         role: "Frontend & Mobile (React Native)",
+  //         avatarUrl: "https://randomuser.me/api/portraits/men/45.jpg",
+  //         skills: ["React Native", "TypeScript", "Redux", "CI/CD"],
+  //       ),
+  //     ],
+  //   );
+  // }
 }
 
 // Widget hiển thị ProjectEntity

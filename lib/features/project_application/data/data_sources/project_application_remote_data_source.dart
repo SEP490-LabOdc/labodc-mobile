@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 
 // Điều chỉnh import theo cấu trúc dự án thực tế của bạn
 import '../../../../core/config/networks/config.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../models/project_applicant_model.dart';
 import '../models/project_application_status_model.dart';
 import '../models/submitted_cv_model.dart';
 import '../models/uploaded_file_model.dart';
@@ -21,6 +23,8 @@ abstract class ProjectApplicationRemoteDataSource {
   Future<UploadedFileModel> uploadCvFile(File file);
   Future<bool> hasAppliedProject(String projectId);
   Future<ProjectApplicationStatusModel> getApplicationStatus(String projectId);
+  Future<List<MyProjectModel>> getMyProjects({String? status});
+  Future<List<ProjectApplicantModel>> getProjectApplicants(String projectId);
 
 }
 
@@ -43,7 +47,7 @@ class ProjectApplicationRemoteDataSourceImpl
     };
   }
 
-  // 1. API Kiểm tra CV
+  // 1. API lấy CV đã ứng tuyển
   @override
   Future<List<SubmittedCvModel>> getMySubmittedCvs() async {
     final uri =
@@ -263,4 +267,96 @@ class ProjectApplicationRemoteDataSourceImpl
       );
     }
   }
+
+  @override
+  Future<List<MyProjectModel>> getMyProjects({String? status}) async {
+    final baseUri = ApiConfig.endpoint('api/v1/projects/my-projects');
+
+    final uri = (status != null && status.isNotEmpty)
+        ? baseUri.replace(queryParameters: {
+      ...baseUri.queryParameters,
+      'status': status,
+    })
+        : baseUri;
+
+    try {
+      final response = await client.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      final decoded = json.decode(
+        utf8.decode(response.bodyBytes),
+      ) as Map<String, dynamic>;
+
+      if (kDebugMode) {
+        debugPrint(
+          'MyProjects Response: '
+              '${response.statusCode} - ${utf8.decode(response.bodyBytes)}',
+        );
+      }
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final dataList = decoded['data'] as List<dynamic>;
+
+        return dataList
+            .map((item) => MyProjectModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw ServerException(
+          decoded['message'] ?? 'Không đọc được danh sách dự án của bạn',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException(
+        'Lỗi không xác định khi lấy danh sách dự án của bạn: $e',
+      );
+    }
+  }
+  @override
+  Future<List<ProjectApplicantModel>> getProjectApplicants(
+      String projectId) async {
+    final uri =
+    ApiConfig.endpoint('api/v1/projects/$projectId/applicants');
+
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: headers);
+
+      debugPrint(
+          '[ProjectApplicationRemoteDataSourceImpl] getProjectApplicants(${uri.toString()}), status=${response.statusCode}');
+
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        throw ServerException(
+          decoded['message'] ?? 'Lấy danh sách ứng viên thất bại',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final List<dynamic> data = decoded['data'] as List<dynamic>;
+      return data
+          .map(
+            (e) => ProjectApplicantModel.fromJson(
+          e as Map<String, dynamic>,
+        ),
+      )
+          .toList();
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException(
+        'Lỗi không xác định khi lấy danh sách ứng viên: $e',
+      );
+    }
+  }
+
+
+
 }

@@ -12,7 +12,7 @@ import '../../../auth/presentation/provider/auth_provider.dart';
 
 // 2. Hiring Project Feature
 import '../../../project_application/domain/repositories/project_application_repository.dart';
-import '../../data/models/project_model.dart';
+import '../../../project_application/presentation/pages/project_applicants_page.dart';
 import '../../domain/repositories/project_repository.dart';
 import '../../data/models/project_detail_model.dart';
 
@@ -100,16 +100,16 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           _error = _mapFailureToMessage(failure);
           _loading = false;
         });
-        // ❌ KHÔNG gọi _checkAppliedStatus() ở đây vì _project vẫn null
       },
           (data) {
-        debugPrint('[ProjectDetailView] _fetchProjectData() SUCCESS, projectId = ${data.id}');
+        debugPrint(
+            '[ProjectDetailView] _fetchProjectData() SUCCESS, projectId = ${data.id}');
         setState(() {
           _project = data;
           _loading = false;
         });
 
-        // ✅ Sau khi có project -> check xem user đã apply chưa
+        // Sau khi có project -> check xem user đã apply chưa
         _checkAppliedStatus();
       },
     );
@@ -144,7 +144,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       },
           (hasApplied) {
         if (kDebugMode) {
-          debugPrint('[ProjectDetailView] hasAppliedProject SUCCESS: $hasApplied');
+          debugPrint(
+              '[ProjectDetailView] hasAppliedProject SUCCESS: $hasApplied');
         }
         setState(() {
           _hasApplied = hasApplied;
@@ -164,7 +165,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    debugPrint('[ProjectDetailView] _showSnackBar: "$message", isError=$isError');
+    debugPrint(
+        '[ProjectDetailView] _showSnackBar: "$message", isError=$isError');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -291,6 +293,14 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
   }
 
   Widget _buildInfoCardsRow(BuildContext context, ProjectDetailModel p) {
+    final startText = p.startDate != null
+        ? ProjectDataFormatter.formatDate(p.startDate!)
+        : 'Chưa cập nhật';
+
+    final endText = p.endDate != null
+        ? ProjectDataFormatter.formatDate(p.endDate!)
+        : 'Chưa cập nhật';
+
     return Row(
       children: [
         Expanded(
@@ -299,8 +309,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             context,
             icon: Icons.calendar_month_outlined,
             title: 'Thời gian',
-            content:
-            '${ProjectDataFormatter.formatDate(p.startDate)}\n- ${ProjectDataFormatter.formatDate(p.endDate)}',
+            content: '$startText\n- $endText',
           ),
         ),
         const SizedBox(width: 12),
@@ -353,7 +362,12 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     );
   }
 
-  Widget _buildSkillsSection(BuildContext context, List<SkillModel> skills) {
+
+  /// Skills: ProjectSkillModel
+  Widget _buildSkillsSection(
+      BuildContext context,
+      List<ProjectSkillModel> skills,
+      ) {
     final theme = Theme.of(context);
     if (skills.isEmpty) {
       return Text(
@@ -378,8 +392,13 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     );
   }
 
-  Widget _buildMentorsSection(BuildContext context, List<dynamic> mentors) {
+  /// Mentors: ProjectMentorModel
+  Widget _buildMentorsSection(
+      BuildContext context,
+      List<ProjectMentorModel> mentors,
+      ) {
     final theme = Theme.of(context);
+
     if (mentors.isEmpty) {
       return Text(
         'Chưa có mentor được gán cho dự án này.',
@@ -391,15 +410,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
 
     return Column(
       children: mentors.map((m) {
-        String name = 'Mentor';
-        String? avatarUrl;
-
-        if (m is Map<String, dynamic>) {
-          name = (m['fullName'] ?? m['name'] ?? 'Mentor').toString();
-          avatarUrl = m['avatarUrl']?.toString();
-        } else {
-          name = m.toString();
-        }
+        final isLeader = m.leader;
 
         return ListTile(
           contentPadding:
@@ -407,20 +418,119 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           leading: CircleAvatar(
             radius: 20,
             backgroundColor: theme.colorScheme.primaryContainer,
-            backgroundImage:
-            avatarUrl != null ? NetworkImage(avatarUrl) : null,
-            child: avatarUrl == null
-                ? Icon(
-              Icons.person,
-              color: theme.colorScheme.onPrimaryContainer,
-              size: 20,
-            )
-                : null,
+            child: Text(
+              (m.name.isNotEmpty ? m.name[0] : 'M').toUpperCase(),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          title: Text(
-            name,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  m.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (isLeader)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Leader',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          subtitle: Text(
+            m.roleName, // "MENTOR"
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Talents: ProjectTalentModel
+  Widget _buildTalentsSection(
+      BuildContext context,
+      List<ProjectTalentModel> talents,
+      ) {
+    final theme = Theme.of(context);
+
+    if (talents.isEmpty) {
+      return Text(
+        'Chưa có thành viên nào tham gia dự án này.',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    return Column(
+      children: talents.map((t) {
+        final isLeader = t.leader;
+
+        return ListTile(
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          leading: CircleAvatar(
+            radius: 20,
+            backgroundColor: theme.colorScheme.primaryContainer,
+            child: Text(
+              (t.name.isNotEmpty ? t.name[0] : 'T').toUpperCase(),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  t.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (isLeader)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Leader',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          subtitle: Text(
+            t.roleName, // "TALENT"
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         );
@@ -512,7 +622,6 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       debugPrint(
           '[ProjectDetailView] UploadCvUseCase.call() with file.path=${file.path}');
 
-      // Gọi use case upload trực tiếp
       final uploadUseCase = getIt<UploadCvUseCase>();
       final uploadResult = await uploadUseCase.call(file);
 
@@ -524,7 +633,6 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             (uploaded) {
           debugPrint(
               '[ProjectDetailView] uploadResult SUCCESS: fileName=${uploaded.fileName}, fileUrl=${uploaded.fileUrl}');
-          // Thêm CV mới vào list local + chọn nó
           setModalState(() {
             localCvs.add(
               SubmittedCvModel(
@@ -559,7 +667,6 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     debugPrint(
         '[ProjectDetailView] _showCvSelectionSheet() initialCvs.length=${initialCvs.length}');
 
-    // copy từ my-submitted-cvs ra list local
     final List<SubmittedCvModel> localCvs = List.of(initialCvs);
     int? selectedIndex = localCvs.isNotEmpty ? 0 : null;
 
@@ -756,24 +863,15 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         '[ProjectDetailView] build(), role=$role, loading=$_loading, error=$_error, hasApplied=$_hasApplied, checkingApplied=$_checkingApplied');
 
     final canApplyRole = role == 'TALENT' || role == 'USER';
+    final isMentorRole = role == 'MENTOR';
 
-
-    // Chỉ show khu apply nếu:
-    // - User có role phù hợp
-    // - Có project
-    // - Không loading, không lỗi
-    // - Không đang check hasApplied
     final canShowBottomArea = canApplyRole &&
         _project != null &&
         !_loading &&
         _error == null &&
         !_checkingApplied;
 
-    // Có thể apply nếu:
-    // - Thỏa điều kiện trên
-    // - Chưa apply
-    final canApplyThisProject =
-        canShowBottomArea && !_hasApplied;
+    final canApplyThisProject = canShowBottomArea && !_hasApplied;
 
     return BlocListener<ProjectApplicationCubit, ProjectApplicationState>(
       listener: (context, state) async {
@@ -784,7 +882,6 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         } else if (state is ProjectApplicationCvCheckSuccess) {
           debugPrint(
               '[ProjectDetailView] state = ProjectApplicationCvCheckSuccess, cvs.length=${state.cvs.length}');
-          // Luôn mở sheet chọn CV với danh sách my-submitted-cvs
           _showCvSelectionSheet(state.cvs);
         } else if (state is ProjectApplicationApplySuccess) {
           debugPrint(
@@ -793,16 +890,12 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             Navigator.pop(context); // đóng modal xác nhận
           }
           _showSnackBar('Ứng tuyển thành công!');
-
-          // ✅ Sau khi apply thành công, refresh trạng thái hasApplied
           await _checkAppliedStatus();
         } else if (state is ProjectApplicationFailure) {
           debugPrint(
               '[ProjectDetailView] state = ProjectApplicationFailure, message=${state.message}');
           _showSnackBar(state.message, isError: true);
 
-          // ✅ Nếu backend trả: "Bạn đã ứng tuyển vào dự án này."
-          // => vẫn nên đánh dấu là đã apply
           if (state.message
               .toLowerCase()
               .contains('bạn đã ứng tuyển vào dự án này')) {
@@ -862,8 +955,22 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             ),
           ),
         )
+            : _project == null
+            ? Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Không tìm thấy dữ liệu dự án.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        )
             : SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+          padding:
+          const EdgeInsets.fromLTRB(16, 8, 16, 80),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -898,9 +1005,18 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                   _project!.mentors,
                 ),
               ),
+              const SizedBox(height: 20),
+              SectionCard(
+                title: 'Thành viên',
+                child: _buildTalentsSection(
+                  context,
+                  _project!.talents,
+                ),
+              ),
               const SizedBox(height: 24),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0),
                 child: _buildMetadataFooter(
                   context,
                   _project!,
@@ -909,7 +1025,29 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             ],
           ),
         ),
-        floatingActionButton: !canShowBottomArea
+        floatingActionButton:
+        (isMentorRole &&
+            _project != null &&
+            !_loading &&
+            _error == null)
+            ? FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProjectApplicantsPage(
+                  projectId: _project!.id,
+                ),
+              ),
+            );
+          },
+          label: const Text('Xem danh sách ứng viên'),
+          icon: const Icon(Icons.people_alt_outlined),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          elevation: 4,
+        )
+            : !canShowBottomArea
             ? null
             : canApplyThisProject
             ? FloatingActionButton.extended(
@@ -921,9 +1059,12 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                 .checkCvAvailability();
           },
           label: const Text('Ứng tuyển ngay'),
-          icon: const Icon(Icons.rocket_launch_rounded),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.colorScheme.onPrimary,
+          icon: const Icon(
+              Icons.rocket_launch_rounded),
+          backgroundColor:
+          theme.colorScheme.primary,
+          foregroundColor:
+          theme.colorScheme.onPrimary,
           elevation: 4,
         )
             : FloatingActionButton.extended(
@@ -933,7 +1074,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             );
           },
           label: const Text('Đã ứng tuyển'),
-          icon: const Icon(Icons.check_circle_outline),
+          icon: const Icon(
+              Icons.check_circle_outline),
           backgroundColor: Colors.grey.shade400,
           foregroundColor: Colors.white,
           elevation: 0,

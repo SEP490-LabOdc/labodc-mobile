@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:dartz/dartz.dart';
+import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/repositories/project_application_repository.dart';
 import '../data_sources/project_application_remote_data_source.dart';
+import '../models/project_applicant_model.dart';
 import '../models/submitted_cv_model.dart';
 import '../models/uploaded_file_model.dart';
 
@@ -76,4 +78,38 @@ class ProjectApplicationRepositoryImpl implements ProjectApplicationRepository {
       return Left(ServerFailure(e.toString(), 500));
     }
   }
+
+  @override
+  Future<Either<Failure, List<MyProjectModel>>> getMyProjects({
+    String? status,
+  }) async {
+    try {
+      final result = await remoteDataSource.getMyProjects(status: status);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProjectApplicantModel>>> getProjectApplicants(
+      String projectId) async {
+    try {
+      final result =
+      await remoteDataSource.getProjectApplicants(projectId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
+
+
 }

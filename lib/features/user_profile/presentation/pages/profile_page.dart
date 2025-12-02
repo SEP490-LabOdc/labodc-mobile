@@ -13,13 +13,13 @@ import '../../../../shared/widgets/service_chip.dart';
 import '../../../auth/presentation/provider/auth_provider.dart';
 
 // DÙNG CHUNG PROFILE OVERVIEW
-import '../../../user_profile/presentation/widgets/profile_overview.dart';
+import '../widgets/profile_overview.dart';
 
 // DÙNG CHUNG USER PROFILE MODEL + CUBIT + STATE
-import '../../../user_profile/data/models/user_profile_model.dart';
-import '../../../user_profile/presentation/cubit/user_profile_cubit.dart';
-import '../../../user_profile/presentation/cubit/user_profile_state.dart';
-import '../../../user_profile/domain/repositories/user_profile_repository.dart';
+import '../../data/models/user_profile_model.dart';
+import '../cubit/user_profile_cubit.dart';
+import '../cubit/user_profile_state.dart';
+import '../../domain/repositories/user_profile_repository.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});

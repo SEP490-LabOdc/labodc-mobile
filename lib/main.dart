@@ -91,12 +91,15 @@ Future<void> main() async {
           BlocProvider(create: (_) => getIt<ThemeBloc>()..add(GetThemeEvent())),
           BlocProvider(create: (_) => VibrationCubit()..load()),
 
+
           // 🧩 TalentProfileCubit có param => tạo bằng param
           BlocProvider(
             create: (context) => getIt<TalentProfileCubit>(
               param1: Provider.of<AuthProvider>(context, listen: false),
             ),
+
           ),
+
 
           // 🔔 WebSocketNotificationCubit khởi tạo tại đây
           BlocProvider(
