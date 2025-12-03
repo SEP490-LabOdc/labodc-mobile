@@ -26,7 +26,10 @@ import '../../../project_application/domain/use_cases/upload_cv_use_case.dart';
 import '../../../../shared/widgets/reusable_card.dart';
 import '../../../../shared/widgets/expandable_text.dart';
 import '../../../../shared/widgets/service_chip.dart';
+import '../cubit/related_projects_preview_cubit.dart';
+import '../cubit/related_projects_preview_state.dart';
 import '../utils/project_data_formatter.dart';
+import '../widgets/related_project_miniCard.dart';
 
 class ProjectDetailPage extends StatelessWidget {
   final String projectId;
@@ -39,13 +42,19 @@ class ProjectDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     debugPrint('[ProjectDetailPage] build, projectId = $projectId');
-    return BlocProvider<ProjectApplicationCubit>(
-      create: (_) {
-        debugPrint('[ProjectDetailPage] create ProjectApplicationCubit');
-        return getIt<ProjectApplicationCubit>();
-      },
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ProjectApplicationCubit>(
+          create: (_) => getIt<ProjectApplicationCubit>(),
+        ),
+        BlocProvider<RelatedProjectsPreviewCubit>(
+          create: (_) => getIt<RelatedProjectsPreviewCubit>()
+            ..loadPreview(projectId),
+        ),
+      ],
       child: ProjectDetailView(projectId: projectId),
     );
+
   }
 }
 
@@ -1013,6 +1022,11 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                   _project!.talents,
                 ),
               ),
+              const SizedBox(height: 20),
+              SectionCard(
+                title: 'Dự án liên quan',
+                child: _buildRelatedProjectsSection(context),
+              ),
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -1084,3 +1098,67 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     );
   }
 }
+
+Widget _buildRelatedProjectsSection(BuildContext context) {
+  final theme = Theme.of(context);
+
+  return BlocBuilder<RelatedProjectsPreviewCubit, RelatedProjectsPreviewState>(
+    builder: (context, state) {
+      // Đang load: skeleton ngang
+      if (state.isLoading) {
+        return SizedBox(
+          height: 170,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: 3,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, __) {
+              return Container(
+                width: 240,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              );
+            },
+          ),
+        );
+      }
+
+      // Lỗi
+      if (state.errorMessage != null) {
+        return Text(
+          state.errorMessage!,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        );
+      }
+
+      // Không có dự án liên quan
+      if (state.projects.isEmpty) {
+        return Text(
+          'Chưa có dự án liên quan nào.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        );
+      }
+
+      // Có dữ liệu
+      return SizedBox(
+        height: 180,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: state.projects.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, index) {
+            final project = state.projects[index];
+            return RelatedProjectMiniCard(project: project);
+          },
+        ),
+      );
+    },
+  );
+}
+

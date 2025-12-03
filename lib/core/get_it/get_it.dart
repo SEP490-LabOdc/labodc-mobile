@@ -1,6 +1,7 @@
 // lib/core/get_it/get_it.dart
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:labodc_mobile/features/hiring_projects/presentation/cubit/related_projects_preview_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Core Theme
@@ -172,6 +173,11 @@ Future<void> init() async {
   getIt.registerFactory<HiringProjectsCubit>(
         () => HiringProjectsCubit(
       getIt<GetHiringProjects>(),
+    ),
+  );
+  getIt.registerFactory<RelatedProjectsPreviewCubit>(
+        () => RelatedProjectsPreviewCubit(
+      repository: getIt<ProjectRepository>(),
     ),
   );
 

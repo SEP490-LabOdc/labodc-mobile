@@ -111,5 +111,49 @@ class ProjectApplicationRepositoryImpl implements ProjectApplicationRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, void>> approveProjectApplication(
+      String projectApplicationId,
+      ) async {
+    try {
+      await remoteDataSource.approveProjectApplication(projectApplicationId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(
+        ServerFailure(e.message, e.statusCode ?? 500),
+      );
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(
+        ServerFailure(e.toString(), 500),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> rejectProjectApplication(
+      String projectApplicationId,
+      String reviewNotes,
+      ) async {
+    try {
+      await remoteDataSource.rejectProjectApplication(
+        projectApplicationId,
+        reviewNotes,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(
+        ServerFailure(e.message, e.statusCode ?? 500),
+      );
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(
+        ServerFailure(e.toString(), 500),
+      );
+    }
+  }
+
 
 }

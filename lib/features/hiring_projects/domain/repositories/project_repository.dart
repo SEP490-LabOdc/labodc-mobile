@@ -1,10 +1,17 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../data/models/project_detail_model.dart';
+import '../../data/models/project_model.dart';
 import '../entities/project_entity.dart';
 
 abstract class ProjectRepository {
   Future<Either<Failure, PaginatedProjectEntity>> getHiringProjects({
+    required int page,
+    required int pageSize,
+  });
+
+  Future<Either<Failure, PaginatedProjectModel>> getRelatedProjects({
+    required String projectId,
     required int page,
     required int pageSize,
   });

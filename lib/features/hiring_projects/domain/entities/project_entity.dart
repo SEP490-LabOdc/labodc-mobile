@@ -18,6 +18,7 @@ class ProjectEntity {
   final DateTime endDate;
   final int currentApplicants;
   final List<SkillEntity> skills;
+  final String status;
 
   ProjectEntity({
     required this.projectId,
@@ -27,6 +28,7 @@ class ProjectEntity {
     required this.endDate,
     required this.currentApplicants,
     required this.skills,
+    required this.status,
   });
 }
 //Phân trang

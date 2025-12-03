@@ -30,6 +30,7 @@ class ProjectModel extends ProjectEntity {
     required super.endDate,
     required super.currentApplicants,
     required super.skills,
+    required super.status,
   });
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
@@ -80,6 +81,8 @@ class ProjectModel extends ProjectEntity {
       }
     }
 
+    final status = (json['status'] ?? 'unknown').toString();
+
     return ProjectModel(
       projectId: projectId,
       projectName: projectName,
@@ -88,6 +91,7 @@ class ProjectModel extends ProjectEntity {
       endDate: endDate,
       currentApplicants: currentApplicants,
       skills: skillsList,
+      status: status,
     );
   }
 }

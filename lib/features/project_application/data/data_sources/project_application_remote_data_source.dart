@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:labodc_mobile/core/error/failures.dart';
 import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 
 // Điều chỉnh import theo cấu trúc dự án thực tế của bạn
@@ -25,6 +27,13 @@ abstract class ProjectApplicationRemoteDataSource {
   Future<ProjectApplicationStatusModel> getApplicationStatus(String projectId);
   Future<List<MyProjectModel>> getMyProjects({String? status});
   Future<List<ProjectApplicantModel>> getProjectApplicants(String projectId);
+
+  Future<void> approveProjectApplication(String projectApplicationId);
+
+  Future<void> rejectProjectApplication(
+      String projectApplicationId,
+      String reviewNotes,
+      );
 
 }
 
@@ -317,6 +326,7 @@ class ProjectApplicationRemoteDataSourceImpl
       );
     }
   }
+
   @override
   Future<List<ProjectApplicantModel>> getProjectApplicants(
       String projectId) async {
@@ -357,6 +367,91 @@ class ProjectApplicationRemoteDataSourceImpl
     }
   }
 
+  @override
+  Future<void> approveProjectApplication(String projectApplicationId) async {
+    final uri = ApiConfig.endpoint(
+      'api/v1/project-applications/$projectApplicationId/approve',
+    );
 
+    try {
+      final headers = await _getHeaders();
 
+      final response = await client.post(
+        uri,
+        headers: headers,
+      );
+
+      final body = utf8.decode(response.bodyBytes);
+
+      if (kDebugMode) {
+        debugPrint(
+          '[ProjectApplicationRemoteDataSourceImpl] approveProjectApplication '
+              '(${uri.toString()}), status=${response.statusCode}, body=$body',
+        );
+      }
+
+      final decoded = json.decode(body) as Map<String, dynamic>;
+
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        throw ServerException(
+          decoded['message']?.toString() ?? 'Duyệt ứng viên thất bại',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException(
+        'Lỗi không xác định khi duyệt ứng viên: $e',
+      );
+    }
+  }
+
+  @override
+  Future<void> rejectProjectApplication(
+      String projectApplicationId,
+      String reviewNotes,
+      ) async {
+    final uri = ApiConfig.endpoint(
+      'api/v1/project-applications/$projectApplicationId/reject',
+    );
+
+    try {
+      final headers = await _getHeaders();
+
+      final response = await client.post(
+        uri,
+        headers: headers,
+        body: json.encode({
+          'reviewNotes': reviewNotes,
+        }),
+      );
+
+      final body = utf8.decode(response.bodyBytes);
+
+      if (kDebugMode) {
+        debugPrint(
+          '[ProjectApplicationRemoteDataSourceImpl] rejectProjectApplication '
+              '(${uri.toString()}), status=${response.statusCode}, body=$body',
+        );
+      }
+
+      final decoded = json.decode(body) as Map<String, dynamic>;
+
+      if (response.statusCode != 200 || decoded['success'] != true) {
+        throw ServerException(
+          decoded['message']?.toString() ?? 'Từ chối ứng viên thất bại',
+          statusCode: response.statusCode,
+        );
+      }
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException(
+        'Lỗi không xác định khi từ chối ứng viên: $e',
+      );
+    }
+  }
 }

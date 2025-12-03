@@ -14,4 +14,11 @@ abstract class ProjectApplicationRepository {
   Future<Either<Failure, List<MyProjectModel>>> getMyProjects({String? status});
   Future<Either<Failure, List<ProjectApplicantModel>>> getProjectApplicants(
       String projectId);
+  Future<Either<Failure, void>> approveProjectApplication(
+      String projectApplicationId,
+      );
+  Future<Either<Failure, void>> rejectProjectApplication(
+      String projectApplicationId,
+      String reviewNotes,
+      );
 }
