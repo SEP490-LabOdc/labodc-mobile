@@ -1047,28 +1047,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           ),
         ),
         floatingActionButton:
-        (isMentorRole &&
-            _project != null &&
-            !_loading &&
-            _error == null)
-            ? FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProjectApplicantsPage(
-                  projectId: _project!.id,
-                ),
-              ),
-            );
-          },
-          label: const Text('Xem danh sách ứng viên'),
-          icon: const Icon(Icons.people_alt_outlined),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.colorScheme.onPrimary,
-          elevation: 4,
-        )
-            : !canShowBottomArea
+        !canShowBottomArea
             ? null
             : canApplyThisProject
             ? FloatingActionButton.extended(
@@ -1080,12 +1059,9 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                 .checkCvAvailability();
           },
           label: const Text('Ứng tuyển ngay'),
-          icon: const Icon(
-              Icons.rocket_launch_rounded),
-          backgroundColor:
-          theme.colorScheme.primary,
-          foregroundColor:
-          theme.colorScheme.onPrimary,
+          icon: const Icon(Icons.rocket_launch_rounded),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
           elevation: 4,
         )
             : FloatingActionButton.extended(
@@ -1095,8 +1071,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
             );
           },
           label: const Text('Đã ứng tuyển'),
-          icon: const Icon(
-              Icons.check_circle_outline),
+          icon: const Icon(Icons.check_circle_outline),
           backgroundColor: Colors.grey.shade400,
           foregroundColor: Colors.white,
           elevation: 0,

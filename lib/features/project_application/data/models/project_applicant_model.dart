@@ -1,12 +1,46 @@
-class AiScanResultModel {
+class ProjectApplicantModel {
+  final String id;
+  final String userId;
+  final String name;
+  final String cvUrl;
+  final String status;
+  final DateTime appliedAt;
+  final AiScanResult? aiScanResult;
+
+  ProjectApplicantModel({
+    required this.id,
+    required this.userId,
+    required this.name,
+    required this.cvUrl,
+    required this.status,
+    required this.appliedAt,
+    required this.aiScanResult,
+  });
+
+  factory ProjectApplicantModel.fromJson(Map<String, dynamic> json) {
+    return ProjectApplicantModel(
+      id: json['id'],
+      userId: json['userId'],
+      name: json['name'],
+      cvUrl: json['cvUrl'],
+      status: json['status'],
+      appliedAt: DateTime.parse(json['appliedAt']),
+      aiScanResult: json['aiScanResult'] != null
+          ? AiScanResult.fromJson(json['aiScanResult'])
+          : null,
+    );
+  }
+}
+
+class AiScanResult {
   final bool? isCv;
   final String? reason;
   final double? matchScore;
   final String? summary;
-  final String? pros;
-  final String? cons;
+  final List<String>? pros;
+  final List<String>? cons;
 
-  const AiScanResultModel({
+  AiScanResult({
     this.isCv,
     this.reason,
     this.matchScore,
@@ -15,49 +49,19 @@ class AiScanResultModel {
     this.cons,
   });
 
-  factory AiScanResultModel.fromJson(Map<String, dynamic> json) {
-    return AiScanResultModel(
-      isCv: json['isCv'] as bool?,
-      reason: json['reason'] as String?,
+  factory AiScanResult.fromJson(Map<String, dynamic> json) {
+    return AiScanResult(
+      isCv: json['isCv'],
+      reason: json['reason'],
       matchScore: (json['matchScore'] as num?)?.toDouble(),
-      summary: json['summary'] as String?,
-      pros: json['pros'] as String?,
-      cons: json['cons'] as String?,
-    );
-  }
-}
+      summary: json['summary'],
 
-class ProjectApplicantModel {
-  final String id;
-  final String userId;
-  final String name;
-  final String cvUrl;
-  final String status;
-  final DateTime appliedAt;
-  final AiScanResultModel? aiScanResult;
+      pros: json['pros'] != null
+          ? List<String>.from(json['pros'])
+          : null,
 
-  const ProjectApplicantModel({
-    required this.id,
-    required this.userId,
-    required this.name,
-    required this.cvUrl,
-    required this.status,
-    required this.appliedAt,
-    this.aiScanResult,
-  });
-
-  factory ProjectApplicantModel.fromJson(Map<String, dynamic> json) {
-    return ProjectApplicantModel(
-      id: json['id'] as String,
-      userId: json['userId'] as String,
-      name: json['name'] as String,
-      cvUrl: json['cvUrl'] as String,
-      status: json['status'] as String,
-      appliedAt: DateTime.parse(json['appliedAt'] as String),
-      aiScanResult: json['aiScanResult'] != null
-          ? AiScanResultModel.fromJson(
-        json['aiScanResult'] as Map<String, dynamic>,
-      )
+      cons: json['cons'] != null
+          ? List<String>.from(json['cons'])
           : null,
     );
   }

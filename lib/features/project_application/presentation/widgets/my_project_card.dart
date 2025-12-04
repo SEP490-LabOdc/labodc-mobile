@@ -98,7 +98,7 @@ class MyProjectCard extends StatelessWidget {
     return ReusableCard(
       onTap: () {
         AppRouter.pushNamed(
-          Routes.projectDetailName,
+          Routes.myProjectDetailName,
           pathParameters: {'id': projectId},
         );
       },

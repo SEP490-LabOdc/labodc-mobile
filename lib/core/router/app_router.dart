@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
+import 'package:labodc_mobile/features/project_application/presentation/pages/my_project_detail_page.dart';
 
 // Pages imports
 import '../../features/admin/presentation/pages/lab_admin_main_page.dart';
@@ -180,6 +181,15 @@ class AppRouter {
             final id = state.pathParameters['id'];
             if (id == null) return const SizedBox.shrink();
             return ProjectDetailPage(projectId: id);
+          },
+        ),
+        GoRoute(
+          path: Routes.myProjectDetail,
+          name: Routes.myProjectDetailName,
+          builder: (context, state) {
+            final id = state.pathParameters['id'];
+            if (id == null) return const SizedBox.shrink();
+            return MyProjectDetailPage(projectId: id);
           },
         ),
         GoRoute(

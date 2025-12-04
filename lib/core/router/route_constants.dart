@@ -11,11 +11,14 @@ class Routes {
   static const String company = '/company';
   static const String postDetail = '/post/:id';
   static const String projectDetail = '/projects/:id';
+  static const String myProjectDetail = '/my-projects/:id';
+
   static const String setting = '/setting';
   static const String labAdmin = '/lab-admin';
   static const String uploadCv = '/upload-cv';
   static const String editProfile = '/edit-profile';
   static const String notifications = '/notifications';
+
 
   // Route names
   static const String splashName = 'splash';
@@ -29,11 +32,13 @@ class Routes {
   static const String companyName = '/company';
   static const String postDetailName = 'post-detail';
   static const String projectDetailName = 'project-detail';
+  static const String myProjectDetailName = 'my-project-detail';
   static const String settingName = 'setting';
   static const String labAdminName = 'lab-admin';
   static const String uploadCvName = 'upload-cv';
   static const String editProfileName = 'edit-profile';
   static const String notificationsName = 'notifications';
+
 
   // Public routes (không cần authentication)
   static const List<String> publicRoutes = [
