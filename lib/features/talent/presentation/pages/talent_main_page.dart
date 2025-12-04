@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:labodc_mobile/features/talent/presentation/pages/talent_report_page.dart';
 import 'package:labodc_mobile/features/user_profile/presentation/pages/profile_page.dart';
 import 'package:labodc_mobile/features/talent/presentation/pages/tasks_page.dart';
 
+import '../../../report/presentation/pages/report_page.dart';
 import 'dashboard_page.dart';
 import 'explore_page.dart';
 
@@ -19,7 +21,8 @@ class _TalentMainPageState extends State<TalentMainPage> {
   final List<Widget> _pages = const [
     DashboardPage(),
     ExplorePage(),
-    TasksPage(),
+    // TasksPage(),
+    ReportPage(),
     ProfilePage(),
   ];
 
@@ -34,7 +37,8 @@ class _TalentMainPageState extends State<TalentMainPage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Khám phá'),
-          BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Nhiệm vụ'),
+          // BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Nhiệm vụ'),
+          BottomNavigationBarItem(icon: Icon(Icons.report), label: 'Báo cáo'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
         ],
       ),

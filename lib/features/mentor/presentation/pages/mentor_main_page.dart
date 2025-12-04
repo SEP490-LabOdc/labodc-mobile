@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_approvals_page.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_chat_page.dart';
+import '../../../report/presentation/pages/report_page.dart';
 import '../../../user_profile/presentation/pages/profile_page.dart';
 import 'mentor_dashboard_page.dart';
 
@@ -18,7 +19,8 @@ class _MentorMainPageState extends State<MentorMainPage> {
   final List<Widget> _screens = [
     const MentorDashboardPage(),
     const MentorApprovalsPage(),
-    const MentorChatPage(),
+    // const MentorChatPage(),
+    ReportPage(),
     const ProfilePage(),
   ];
 
@@ -46,8 +48,8 @@ class _MentorMainPageState extends State<MentorMainPage> {
             label: "Phê duyệt",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: "Tin nhắn",
+            icon: Icon(Icons.report),
+            label: "Báo cáo",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

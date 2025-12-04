@@ -183,12 +183,14 @@ class ProjectMentorModel {
   final String name;
   final String roleName;
   final bool leader;
+  final String? avatar;
 
   ProjectMentorModel({
     required this.id,
     required this.name,
     required this.roleName,
     required this.leader,
+    required this.avatar,
   });
 
   factory ProjectMentorModel.fromJson(Map<String, dynamic> json) {
@@ -197,6 +199,7 @@ class ProjectMentorModel {
       name: (json['name'] ?? '').toString(),
       roleName: (json['roleName'] ?? '').toString(),
       leader: json['leader'] as bool? ?? false,
+      avatar: json['avatar']?.toString(),
     );
   }
 
@@ -206,6 +209,7 @@ class ProjectMentorModel {
       'name': name,
       'roleName': roleName,
       'leader': leader,
+      'avatar': avatar,
     };
   }
 }
@@ -215,12 +219,14 @@ class ProjectTalentModel {
   final String name;
   final String roleName;
   final bool leader;
+  final String? avatar;
 
   ProjectTalentModel({
     required this.id,
     required this.name,
     required this.roleName,
     required this.leader,
+    required this.avatar,
   });
 
   factory ProjectTalentModel.fromJson(Map<String, dynamic> json) {
@@ -229,6 +235,7 @@ class ProjectTalentModel {
       name: (json['name'] ?? '').toString(),
       roleName: (json['roleName'] ?? '').toString(),
       leader: json['leader'] as bool? ?? false,
+      avatar: json['avatar']?.toString(),
     );
   }
 
@@ -238,6 +245,7 @@ class ProjectTalentModel {
       'name': name,
       'roleName': roleName,
       'leader': leader,
+      'avatar': avatar,
     };
   }
 }

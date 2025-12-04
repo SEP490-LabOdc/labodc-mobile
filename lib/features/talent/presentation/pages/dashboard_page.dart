@@ -9,6 +9,7 @@ import '../../../../core/router/route_constants.dart';
 import '../../../notification/presentation/widgets/notification_bell.dart';
 
 // Import các widget con đã tách
+import '../../../project_application/presentation/widgets/my_projects_section.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/dashboard_statistics.dart';
 import '../widgets/dashboard_projects.dart';
@@ -67,7 +68,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 20),
                   const DashboardStatistics(),
                   const SizedBox(height: 24),
-                  const DashboardProjects(),
+                  MyProjectsSection(
+                    title: "Dự án của tôi",
+                  ),
+                  // const DashboardProjects(),
                   const SizedBox(height: 24),
                   const DashboardTasks(),
                   const SizedBox(height: 24),

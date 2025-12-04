@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // 1. Core, Auth
 import '../../../../core/get_it/get_it.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../shared/widgets/network_image_with_fallback.dart';
 import '../../../auth/presentation/provider/auth_provider.dart';
 
 // 2. Hiring Project Feature
@@ -419,22 +420,24 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
 
     return Column(
       children: mentors.map((m) {
-        final isLeader = m.leader;
-
         return ListTile(
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          leading: CircleAvatar(
-            radius: 20,
-            backgroundColor: theme.colorScheme.primaryContainer,
-            child: Text(
-              (m.name.isNotEmpty ? m.name[0] : 'M').toUpperCase(),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
-              ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+
+          /// ✅ Avatar với fallback
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: NetworkImageWithFallback(
+              imageUrl: m.avatar ?? "",
+              width: 44,
+              height: 44,
+              fit: BoxFit.cover,
+              fallbackIcon: Icons.person,
+              fallbackIconColor: theme.colorScheme.onSurfaceVariant,
+              fallbackIconSize: 26,
+              borderRadius: BorderRadius.circular(999),
             ),
           ),
+
           title: Row(
             children: [
               Expanded(
@@ -445,10 +448,9 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                   ),
                 ),
               ),
-              if (isLeader)
+              if (m.leader)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(999),
@@ -457,14 +459,15 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                     'Leader',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
             ],
           ),
+
           subtitle: Text(
-            m.roleName, // "MENTOR"
+            m.roleName,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -473,6 +476,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       }).toList(),
     );
   }
+
 
   /// Talents: ProjectTalentModel
   Widget _buildTalentsSection(
@@ -492,22 +496,24 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
 
     return Column(
       children: talents.map((t) {
-        final isLeader = t.leader;
-
         return ListTile(
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          leading: CircleAvatar(
-            radius: 20,
-            backgroundColor: theme.colorScheme.primaryContainer,
-            child: Text(
-              (t.name.isNotEmpty ? t.name[0] : 'T').toUpperCase(),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
-              ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+
+          /// ✅ Avatar với fallback
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: NetworkImageWithFallback(
+              imageUrl: t.avatar ?? "",
+              width: 44,
+              height: 44,
+              fit: BoxFit.cover,
+              fallbackIcon: Icons.person,
+              fallbackIconColor: theme.colorScheme.onSurfaceVariant,
+              fallbackIconSize: 26,
+              borderRadius: BorderRadius.circular(999),
             ),
           ),
+
           title: Row(
             children: [
               Expanded(
@@ -518,10 +524,9 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                   ),
                 ),
               ),
-              if (isLeader)
+              if (t.leader)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(999),
@@ -530,14 +535,15 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                     'Leader',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
             ],
           ),
+
           subtitle: Text(
-            t.roleName, // "TALENT"
+            t.roleName,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -546,6 +552,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       }).toList(),
     );
   }
+
 
   Widget _buildMetadataFooter(BuildContext context, ProjectDetailModel p) {
     final style = Theme.of(context).textTheme.bodySmall?.copyWith(
