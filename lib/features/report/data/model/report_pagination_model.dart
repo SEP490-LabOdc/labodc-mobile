@@ -1,8 +1,7 @@
 import 'package:labodc_mobile/features/report/data/model/report_model.dart';
 
-
 class ReportPaginationModel {
-  final List<ReportItemModel> items;
+  final List<ReportItemModel> data;
   final int totalElements;
   final int totalPages;
   final int currentPage;
@@ -10,7 +9,7 @@ class ReportPaginationModel {
   final bool hasPrevious;
 
   ReportPaginationModel({
-    required this.items,
+    required this.data,
     required this.totalElements,
     required this.totalPages,
     required this.currentPage,
@@ -19,15 +18,15 @@ class ReportPaginationModel {
   });
 
   factory ReportPaginationModel.fromJson(Map<String, dynamic> json) {
-    final list = json["data"] as List<dynamic>;
-
     return ReportPaginationModel(
-      items: list.map((e) => ReportItemModel.fromJson(e)).toList(),
-      totalElements: json["totalElements"],
-      totalPages: json["totalPages"],
-      currentPage: json["currentPage"],
-      hasNext: json["hasNext"],
-      hasPrevious: json["hasPrevious"],
+      data: (json["data"] as List<dynamic>)
+          .map((e) => ReportItemModel.fromJson(e))
+          .toList(),
+      totalElements: json["totalElements"] ?? 0,
+      totalPages: json["totalPages"] ?? 0,
+      currentPage: json["currentPage"] ?? 0,
+      hasNext: json["hasNext"] ?? false,
+      hasPrevious: json["hasPrevious"] ?? false,
     );
   }
 }

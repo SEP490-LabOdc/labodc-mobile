@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:labodc_mobile/features/milestone/presentation/widgets/list_milestone_of_project.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/get_it/get_it.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -12,6 +14,7 @@ import '../../../hiring_projects/presentation/utils/project_data_formatter.dart'
 
 // ⭐ thêm import này
 import '../../../auth/presentation/provider/auth_provider.dart';
+import '../../../milestone/presentation/cubit/milestone_cubit.dart';
 import '../../../project_application/presentation/pages/project_applicants_page.dart';
 
 class MyProjectDetailPage extends StatefulWidget {
@@ -68,7 +71,6 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // ⭐ LẤY ROLE TỪ AUTH PROVIDER
     final authProvider = context.watch<AuthProvider>();
     final role = (authProvider.currentUser?.role ?? '').toUpperCase();
     final isMentor = role == 'MENTOR';
@@ -154,7 +156,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       controller: _tab,
       children: [
         _buildOverviewTab(project!),
-        const Center(child: Text("Cột mốc dự án")),
+        _buildMilestoneTab(project!),
         const Center(child: Text("Tệp tin dự án")),
         const Center(child: Text("Hoạt động dự án")),
         const Center(child: Text("Hóa đơn dự án")),
@@ -352,8 +354,12 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
     );
   }
 
-  Widget _buildMilestoneTab() =>
-      const Center(child: Text("Cột mốc dự án"));
+  Widget _buildMilestoneTab(ProjectDetailModel p) {
+    return BlocProvider(
+      create: (_) => getIt<MilestoneCubit>()..loadMilestones(p.id),
+      child: ListMilestoneOfProject(projectId: p.id),
+    );
+  }
 
   Widget _buildFilesTab() => const Center(child: Text("Tệp tin & hình ảnh dự án"));
 

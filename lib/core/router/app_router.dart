@@ -12,6 +12,7 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/company/presentation/pages/company_main_page.dart';
 import '../../features/mentor/presentation/pages/mentor_main_page.dart';
+import '../../features/milestone/presentation/pages/milestone_detail_page.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
 import '../../features/talent/presentation/pages/talent_main_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
@@ -190,6 +191,15 @@ class AppRouter {
             final id = state.pathParameters['id'];
             if (id == null) return const SizedBox.shrink();
             return MyProjectDetailPage(projectId: id);
+          },
+        ),
+        GoRoute(
+          path: Routes.milestoneDetail,
+          name: Routes.milestoneDetailName,
+          builder: (context, state) {
+            final id = state.pathParameters['id'];
+            if (id == null) return const SizedBox.shrink();
+            return MilestoneDetailPage(milestoneId: id);
           },
         ),
         GoRoute(

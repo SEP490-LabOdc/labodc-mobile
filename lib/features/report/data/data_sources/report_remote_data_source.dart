@@ -21,6 +21,10 @@ abstract class ReportRemoteDataSource {
     required int page,
     required int size,
   });
+  Future<ReportPaginationModel> getMilestonesReports(String milestoneId, {
+    required int page,
+    required int size,
+  });
 }
 
 
@@ -122,6 +126,34 @@ class ReportRemoteDataSourceImpl implements ReportRemoteDataSource {
       if (e is ServerException || e is NetworkException) rethrow;
 
       throw ServerException("Lỗi không xác định khi tải báo cáo đã nhận: $e");
+    }
+  }
+
+  @override
+  Future<ReportPaginationModel> getMilestonesReports(
+      String milestoneId, {
+        required int page,
+        required int size,
+      }) async {
+    final uri = ApiConfig.endpoint(
+      "/api/v1/reports/milestone/$milestoneId?page=$page&size=$size",
+    );
+
+    try {
+      final response = await client.get(uri, headers: await _getHeaders());
+      final body = utf8.decode(response.bodyBytes);
+      final decoded = json.decode(body);
+
+      if (response.statusCode == 200 && decoded["success"] == true) {
+        return ReportPaginationModel.fromJson(decoded["data"]);
+      }
+
+      throw ServerException(
+        decoded["message"] ?? "Không thể tải báo cáo milestone",
+        statusCode: response.statusCode,
+      );
+    } on SocketException {
+      throw NetworkException();
     }
   }
 }

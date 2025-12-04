@@ -1,7 +1,8 @@
-// lib/features/auth/presentation/provider/auth_provider.dart
 import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:labodc_mobile/features/user_profile/domain/repositories/user_profile_repository.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/get_it/get_it.dart';
 import '../../domain/entities/auth_entity.dart';
 import '../../domain/use_cases/login_use_case.dart';
 import '../utils/biometric_helper.dart';
@@ -31,22 +32,50 @@ class AuthProvider extends ChangeNotifier {
   String? get accessToken => _auth?.accessToken;
   String? get refreshToken => _auth?.refreshToken;
   String get userId => _auth?.userId ?? '';
+  String get userName => _auth?.fullName ?? '';
 
-  // --- Tải lại trạng thái người dùng khi khởi động ---
+  // ---------------------------------------------------------------------
+  // LOAD USER PROFILE
+  // ---------------------------------------------------------------------
+  Future<void> _loadUserProfile() async {
+    if (_auth == null) return;
+
+    final repo = getIt<UserProfileRepository>();
+    final result = await repo.getUserProfile(_auth!.userId);
+
+    result.fold(
+          (failure) {
+        debugPrint("⚠️ Load profile failed: ${failure.message}");
+      },
+          (profile) {
+        _auth = _auth!.copyWith(fullName: profile.fullName ?? '');
+        notifyListeners();
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // LOAD AUTH FROM TOKEN (APP START)
+  // ---------------------------------------------------------------------
   Future<void> loadAuthState() async {
     if (_hasAttemptedLoad) return;
     _hasAttemptedLoad = true;
+
     _loading = true;
     notifyListeners();
 
     try {
-      final authData = await BiometricHelper.getAuthData();
-      if (authData != null) {
+      final stored = await BiometricHelper.getAuthData();
+      if (stored != null) {
         final repo = loginUseCase.repository;
+
         _auth = await repo.refreshToken(
-          authData['refreshToken']!,
-          authData['userId']!,
+          stored['refreshToken']!,
+          stored['userId']!,
         );
+
+        // ⭐ Load profile sau khi refresh token
+        await _loadUserProfile();
       }
     } catch (e) {
       _auth = null;
@@ -58,20 +87,25 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // --- Đăng nhập thủ công ---
+  // ---------------------------------------------------------------------
+  // LOGIN WITH EMAIL/PASSWORD
+  // ---------------------------------------------------------------------
   Future<bool> login(String email, String password, bool rememberMe) async {
     _setLoading(true);
     try {
       _auth = await loginUseCase.call(email, password);
 
       if (_auth != null) {
+        // Save token if needed
         if (rememberMe) {
           await BiometricHelper.saveAuthData(_auth!.refreshToken, _auth!.userId);
         } else {
           await BiometricHelper.deleteCredentials();
         }
 
-        debugPrint('✅ Login thủ công thành công.');
+        debugPrint("✅ Login OK → loading user profile");
+        await _loadUserProfile();
+
         return true;
       }
     } on Failure catch (f) {
@@ -84,21 +118,26 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  // --- Đăng nhập bằng sinh trắc học ---
+  // ---------------------------------------------------------------------
+  // LOGIN WITH BIOMETRIC
+  // ---------------------------------------------------------------------
   Future<bool> loginWithBiometric() async {
-    final authData = await BiometricHelper.getAuthData();
-    if (authData == null) return false;
+    final saved = await BiometricHelper.getAuthData();
+    if (saved == null) return false;
 
     _setLoading(true);
     try {
       final repo = loginUseCase.repository;
+
       _auth = await repo.refreshToken(
-        authData['refreshToken']!,
-        authData['userId']!,
+        saved['refreshToken']!,
+        saved['userId']!,
       );
-      debugPrint('✅ Login Biometric thành công.');
+
+      await _loadUserProfile();
+
       return true;
-    } on Failure {
+    } catch (e) {
       _error = "Phiên đăng nhập hết hạn.";
       BiometricHelper.deleteCredentials();
       _auth = null;
@@ -108,7 +147,9 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  // --- Đăng nhập Google ---
+  // ---------------------------------------------------------------------
+  // LOGIN WITH GOOGLE
+  // ---------------------------------------------------------------------
   Future<bool> loginWithGoogle({bool rememberMe = true}) async {
     _setLoading(true);
     try {
@@ -122,21 +163,12 @@ class AuthProvider extends ChangeNotifier {
       _auth = await repo.loginWithGoogle(idToken);
 
       if (_auth != null) {
-        if (_auth!.accessToken != null) {
-          final decoded = JwtDecoder.decode(_auth!.accessToken!);
-          debugPrint("[AuthProvider] Google login decoded: $decoded");
-        }
-
-        // ✅ Lưu refreshToken nếu cần
         if (rememberMe) {
           await BiometricHelper.saveAuthData(_auth!.refreshToken, _auth!.userId);
         }
 
-        debugPrint("✅ AuthProvider: Google login success. Role: ${_auth?.role}");
+        await _loadUserProfile();
         return true;
-      } else {
-        _error = "Không thể xác thực với server.";
-        return false;
       }
     } on Failure catch (f) {
       _error = f.message;
@@ -148,7 +180,9 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  // --- Đăng xuất ---
+  // ---------------------------------------------------------------------
+  // LOGOUT
+  // ---------------------------------------------------------------------
   void logout() {
     _auth = null;
     _error = null;
@@ -157,7 +191,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Helper ---
+  // ---------------------------------------------------------------------
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();

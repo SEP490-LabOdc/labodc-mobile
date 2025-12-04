@@ -5,12 +5,12 @@ class ReportItemModel {
   final String reporterId;
   final String reporterName;
   final String reporterEmail;
-  final String? reporterAvatar;
+  final String reporterAvatar;
   final String recipientId;
   final String reportType;
   final String status;
   final String content;
-  final List<String> attachments;
+  final List<String> attachmentsUrl;
   final DateTime reportingDate;
   final DateTime createdAt;
   final String? feedback;
@@ -29,7 +29,7 @@ class ReportItemModel {
     required this.reportType,
     required this.status,
     required this.content,
-    required this.attachments,
+    required this.attachmentsUrl,
     required this.reportingDate,
     required this.createdAt,
     required this.feedback,
@@ -39,23 +39,23 @@ class ReportItemModel {
 
   factory ReportItemModel.fromJson(Map<String, dynamic> json) {
     return ReportItemModel(
-      id: json["id"],
-      projectId: json["projectId"],
-      projectName: json["projectName"],
-      reporterId: json["reporterId"],
-      reporterName: json["reporterName"],
-      reporterEmail: json["reporterEmail"],
-      reporterAvatar: json["reporterAvatar"],
-      recipientId: json["recipientId"],
-      reportType: json["reportType"],
-      status: json["status"],
-      content: json["content"],
-      attachments: List<String>.from(json["attachmentsUrl"] ?? []),
+      id: json["id"] ?? "",
+      projectId: json["projectId"] ?? "",
+      projectName: json["projectName"] ?? "",
+      reporterId: json["reporterId"] ?? "",
+      reporterName: json["reporterName"] ?? "",
+      reporterEmail: json["reporterEmail"] ?? "",
+      reporterAvatar: json["reporterAvatar"] ?? "",
+      recipientId: json["recipientId"] ?? "",
+      reportType: json["reportType"] ?? "",
+      status: json["status"] ?? "",
+      content: json["content"] ?? "",
+      attachmentsUrl: List<String>.from(json["attachmentsUrl"] ?? []),
       reportingDate: DateTime.parse(json["reportingDate"]),
       createdAt: DateTime.parse(json["createdAt"]),
       feedback: json["feedback"],
-      milestoneId: json["milestoneId"],
-      milestoneTitle: json["milestoneTitle"],
+      milestoneId: json["milestoneId"] ?? "",
+      milestoneTitle: json["milestoneTitle"] ?? "",
     );
   }
 }

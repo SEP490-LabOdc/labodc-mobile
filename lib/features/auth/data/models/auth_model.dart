@@ -9,6 +9,7 @@ class AuthModel extends AuthEntity {
     required super.refreshToken,
     required super.role,
     required super.userId,
+    required super.fullName,
   });
 
   factory AuthModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +49,7 @@ class AuthModel extends AuthEntity {
       refreshToken: json['refreshToken']?.toString() ?? '',
       role: role,
       userId: userId,
+      fullName: json['fullName']?.toString() ?? '',
     );
   }
 }

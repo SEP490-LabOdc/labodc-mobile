@@ -1,17 +1,12 @@
+// lib/features/mentor/presentation/pages/mentor_dashboard_page.dart
+
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:labodc_mobile/core/theme/app_colors.dart';
-
-import '../../../../core/get_it/get_it.dart';
 import '../../../notification/presentation/widgets/notification_bell.dart';
-import '../../../project_application/presentation/cubit/my_projects_cubit.dart';
-import '../../../project_application/domain/repositories/project_application_repository.dart';
-
+import '../../../talent/presentation/widgets/dashboard_header.dart';
 import '../../../project_application/presentation/widgets/my_projects_section.dart';
 import 'candidate_list_page.dart';
 import 'mentor_approvals_page.dart';
 import 'mentor_chat_page.dart';
-
 
 class MentorDashboardPage extends StatelessWidget {
   const MentorDashboardPage({super.key});
@@ -19,7 +14,6 @@ class MentorDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const String userName = 'Mentor'; // TODO: load tên thật từ Auth
 
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
@@ -36,54 +30,28 @@ class MentorDashboardPage extends StatelessWidget {
           SizedBox(width: 8),
         ],
       ),
-
-
-      body: _MentorDashboardBody(userName: userName),
-    );
-  }
-}
-
-class _MentorDashboardBody extends StatelessWidget {
-  final String userName;
-
-  const _MentorDashboardBody({required this.userName});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Xin chào, $userName',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onBackground,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DashboardHeader(theme: theme),
+            const SizedBox(height: 24),
+            Text(
+              'Hành động nhanh',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-
-          Text(
-            'Hành động nhanh',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildQuickActions(context),
-          const SizedBox(height: 32),
-
-          MyProjectsSection(
-            title: "Dự án của tôi",
-          ),
-        ],
+            const SizedBox(height: 16),
+            _buildQuickActions(context),
+            const SizedBox(height: 32),
+            const MyProjectsSection(title: "Dự án của tôi"),
+          ],
+        ),
       ),
     );
   }
-
   Widget _buildQuickActions(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -101,7 +69,7 @@ class _MentorDashboardBody extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const MentorApprovalsPage(),
+                      builder: (_) => const MentorApprovalsPage(),
                     ),
                   );
                 },
@@ -118,9 +86,7 @@ class _MentorDashboardBody extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CandidateListPage(
-                        candidateId: 1,
-                      ),
+                      builder: (_) => const CandidateListPage(candidateId: 1),
                     ),
                   );
                 },
@@ -139,7 +105,7 @@ class _MentorDashboardBody extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const MentorChatPage(),
+                builder: (_) => const MentorChatPage(),
               ),
             );
           },
@@ -148,7 +114,6 @@ class _MentorDashboardBody extends StatelessWidget {
     );
   }
 }
-
 class _QuickActionCard extends StatelessWidget {
   final String title;
   final int count;
@@ -181,10 +146,12 @@ class _QuickActionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Icon(icon, color: color, size: 28),
+
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -195,7 +162,7 @@ class _QuickActionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      count.toString(),
+                      '$count',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

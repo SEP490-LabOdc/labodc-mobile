@@ -13,4 +13,10 @@ abstract class ReportRepository {
     required int page,
     required int size,
   });
+
+  Future<Either<Failure, ReportPaginationModel>> getMilestoneReports(
+    String milestoneId, {
+    required int page,
+    required int size,
+  });
 }

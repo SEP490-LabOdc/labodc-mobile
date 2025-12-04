@@ -32,7 +32,7 @@ class ReportCubit extends Cubit<ReportState> {
           (pagination) {
         emit(state.copyWith(
           status: ReportStatus.success,
-          items: pagination.items,
+          items: pagination.data,
           currentPage: pagination.currentPage,
           hasNext: pagination.hasNext,
           hasPrevious: pagination.hasPrevious,
@@ -69,7 +69,7 @@ class ReportCubit extends Cubit<ReportState> {
           (pagination) {
         emit(state.copyWith(
           status: ReportStatus.success,
-          items: [...state.items, ...pagination.items],
+          items: [...state.items, ...pagination.data],
           currentPage: pagination.currentPage,
           hasNext: pagination.hasNext,
           hasPrevious: pagination.hasPrevious,

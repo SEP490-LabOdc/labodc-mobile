@@ -1,6 +1,7 @@
 // lib/core/get_it/get_it.dart
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:labodc_mobile/features/milestone/presentation/cubit/milestone_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Hiring Projects
@@ -12,6 +13,10 @@ import '../../features/hiring_projects/domain/use_cases/get_hiring_projects.dart
 import '../../features/hiring_projects/presentation/cubit/hiring_projects_cubit.dart';
 
 // Project Application
+import '../../features/milestone/data/data_sources/milestone_remote_data_source.dart';
+import '../../features/milestone/data/repositories/project_repository_impl.dart';
+import '../../features/milestone/domain/repositories/milestone_repository.dart';
+import '../../features/milestone/presentation/cubit/milestone_detail_cubit.dart';
 import '../../features/project_application/data/data_sources/project_application_remote_data_source.dart';
 import '../../features/project_application/data/repositories/project_application_repository_impl.dart';
 import '../../features/project_application/domain/repositories/project_application_repository.dart';
@@ -24,6 +29,7 @@ import '../../features/project_application/presentation/cubit/project_applicatio
 import '../../features/report/data/data_sources/report_remote_data_source.dart';
 import '../../features/report/data/repositories_imp/report_repository_impl.dart';
 import '../../features/report/domain/repositories/report_repository.dart';
+import '../../features/report/presentation/cubit/milestone_reports_state.dart';
 import '../../features/report/presentation/cubit/report_cubit.dart';
 
 // User Profile
@@ -104,6 +110,8 @@ Future<void> init() async {
   // ------------------------
   getIt.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSource());
   getIt.registerLazySingleton<AuthTokenStorage>(() => AuthTokenStorage());
+
+
 
   getIt.registerLazySingleton<AuthRepository>(
         () => AuthRepositoryImpl(
@@ -285,6 +293,44 @@ Future<void> init() async {
       isSent: isSent,
     ),
   );
+
+
+  // Milestone Data Source
+  getIt.registerLazySingleton<MilestoneRemoteDataSource>(
+        () => MilestoneRemoteDataSourceImpl(
+      client: getIt(),
+      authRepository: getIt(),
+    ),
+  );
+
+// Repository
+  getIt.registerLazySingleton<MilestoneRepository>(
+        () => MilestoneRepositoryImpl(
+          remoteDataSource: getIt(),
+    ),
+  );
+  getIt.registerFactory<MilestoneCubit>(
+        () => MilestoneCubit(getIt<MilestoneRepository>()),
+  );
+  // getIt.registerFactory<MilestoneReportsCubit>(
+  //       () => MilestoneReportsCubit(getIt<ReportRepository>()),
+  // );
+  getIt.registerFactoryParam<MilestoneReportsCubit, String, void>(
+        (milestoneId, _) => MilestoneReportsCubit(getIt<ReportRepository>()),
+  );
+
+  getIt.registerFactory<MilestoneDetailCubit>(
+        () => MilestoneDetailCubit(getIt<MilestoneRepository>()),
+  );
+
+
+
+
+
+
+
+
+
 
   // ------------------------
   // WebSocket

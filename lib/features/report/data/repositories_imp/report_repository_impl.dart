@@ -48,4 +48,24 @@ class ReportRepositoryImpl implements ReportRepository {
       return Left(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, ReportPaginationModel>> getMilestoneReports(
+      String milestoneId, {
+        required int page,
+        required int size,
+      }) async {
+    try {
+      final result = await remote.getMilestonesReports(
+        milestoneId,
+        page: page,
+        size: size,
+      );
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    }
+  }
 }

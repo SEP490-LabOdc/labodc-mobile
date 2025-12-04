@@ -15,22 +15,38 @@ class ProjectDataFormatter {
     return DateFormat('dd/MM/yyyy HH:mm').format(date);
   }
 
-  static String formatCurrency(BuildContext context, double? amount) {
-    if (amount == null || amount == 0) return 'Thỏa thuận';
-    final theme = Theme.of(context);
+  // static String formatCurrency(BuildContext context, double? amount) {
+  //   if (amount == null || amount == 0) return '0';
+  //   final theme = Theme.of(context);
+  //
+  //
+  //   try {
+  //     return NumberFormat.currency(
+  //       locale: 'en_US',
+  //       symbol: '\$',
+  //       decimalDigits: 0,
+  //     ).format(amount);
+  //   } catch (e) {
+  //     return '\$${amount.toStringAsFixed(0)}';
+  //   }
+  // }
 
-    // Format theo USD như JSON mẫu (5800 -> $5,800)
-    // Nếu muốn VND, đổi locale thành 'vi_VN' và symbol thành 'đ'
+  static String formatCurrency(BuildContext context, double? amount) {
+    if (amount == null || amount == 0) return '0 VND';
+
     try {
       return NumberFormat.currency(
-        locale: 'en_US',
-        symbol: '\$',
+        locale: 'vi_VN',
+        symbol: 'VND',
         decimalDigits: 0,
       ).format(amount);
     } catch (e) {
-      return '\$${amount.toStringAsFixed(0)}';
+      // fallback nếu lỗi formatter
+      final number = amount.toStringAsFixed(0);
+      return "$number đ";
     }
   }
+
 
   static Color getStatusColor(String status) {
     switch (status.toUpperCase()) {
