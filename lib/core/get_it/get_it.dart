@@ -1,7 +1,6 @@
 // lib/core/get_it/get_it.dart
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
-import 'package:labodc_mobile/features/milestone/presentation/cubit/milestone_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Hiring Projects
@@ -16,6 +15,7 @@ import '../../features/hiring_projects/presentation/cubit/hiring_projects_cubit.
 import '../../features/milestone/data/data_sources/milestone_remote_data_source.dart';
 import '../../features/milestone/data/repositories/project_repository_impl.dart';
 import '../../features/milestone/domain/repositories/milestone_repository.dart';
+import '../../features/milestone/presentation/cubit/milestone_cubit.dart';
 import '../../features/milestone/presentation/cubit/milestone_detail_cubit.dart';
 import '../../features/milestone/presentation/cubit/milestone_documents_cubit.dart';
 import '../../features/project_application/data/data_sources/project_application_remote_data_source.dart';
@@ -62,12 +62,13 @@ import '../../features/talent/domain/repositories/talent_repository.dart';
 import '../../features/talent/domain/use_cases/get_talent_profile.dart';
 import '../../features/talent/presentation/cubit/talent_profile_cubit.dart';
 
-// Notification
+// Notification Imports
 import '../../features/notification/data/data_sources/notification_remote_data_source.dart';
 import '../../features/notification/data/repositories_impl/notification_repository_impl.dart';
 import '../../features/notification/domain/repositories/notification_repository.dart';
 import '../../features/notification/domain/use_cases/get_notifications.dart';
 import '../../features/notification/domain/use_cases/register_device_token_use_case.dart';
+import '../../features/notification/websocket/cubit/websocket_notification_cubit.dart';
 
 // Theme
 import '../theme/bloc/theme_bloc.dart';
@@ -77,7 +78,7 @@ import '../theme/domain/repository/theme_repository.dart';
 import '../theme/domain/usecase/get_theme_use_case.dart';
 import '../theme/domain/usecase/save_theme_use_case.dart';
 
-// Websocket
+// Websocket Service
 import '../services/realtime/stomp_notification_service.dart';
 
 final getIt = GetIt.instance;
@@ -85,10 +86,51 @@ final getIt = GetIt.instance;
 Future<void> init() async {
 
   // ------------------------
-  // SharedPreferences
+  // SharedPreferences & Http
   // ------------------------
   final sharedPrefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPrefs);
+  getIt.registerLazySingleton<http.Client>(() => http.Client());
+
+  // ------------------------
+  // NOTIFICATION & WEBSOCKET
+  // ------------------------
+
+  // 1. Data Source
+  getIt.registerLazySingleton<NotificationRemoteDataSource>(
+        () => NotificationRemoteDataSource(),
+  );
+
+  // 2. Repository
+  getIt.registerLazySingleton<NotificationRepositoryImpl>(
+        () => NotificationRepositoryImpl(remoteDataSource: getIt()),
+  );
+  getIt.registerLazySingleton<NotificationRepository>(
+        () => getIt<NotificationRepositoryImpl>(),
+  );
+
+  // 3. Stomp Service
+  getIt.registerLazySingleton<StompNotificationService>(
+        () => StompNotificationService(),
+  );
+
+  // 4. WebSocket Cubit
+  getIt.registerLazySingleton<WebSocketNotificationCubit>(
+        () => WebSocketNotificationCubit(
+      getIt<NotificationRepositoryImpl>(),
+      getIt<StompNotificationService>(),
+    ),
+  );
+
+  // 5. Use Cases
+  getIt.registerLazySingleton<GetNotificationsUseCase>(
+        () => GetNotificationsUseCase(getIt<NotificationRepository>()),
+  );
+
+  getIt.registerLazySingleton<RegisterDeviceTokenUseCase>(
+        () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
+  );
+
 
   // ------------------------
   // Theme
@@ -112,8 +154,6 @@ Future<void> init() async {
   // ------------------------
   getIt.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSource());
   getIt.registerLazySingleton<AuthTokenStorage>(() => AuthTokenStorage());
-
-
 
   getIt.registerLazySingleton<AuthRepository>(
         () => AuthRepositoryImpl(
@@ -158,30 +198,6 @@ Future<void> init() async {
       authProvider: authProvider,
     ),
   );
-
-  // ------------------------
-  // Notification
-  // ------------------------
-  getIt.registerLazySingleton<NotificationRemoteDataSource>(
-        () => NotificationRemoteDataSource(),
-  );
-
-  getIt.registerLazySingleton<NotificationRepository>(
-        () => NotificationRepositoryImpl(remoteDataSource: getIt()),
-  );
-
-  getIt.registerLazySingleton<GetNotificationsUseCase>(
-        () => GetNotificationsUseCase(getIt<NotificationRepository>()),
-  );
-
-  getIt.registerLazySingleton<RegisterDeviceTokenUseCase>(
-        () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
-  );
-
-  // ------------------------
-  // Http Client
-  // ------------------------
-  getIt.registerLazySingleton<http.Client>(() => http.Client());
 
   // ------------------------
   // Hiring Projects
@@ -274,11 +290,9 @@ Future<void> init() async {
     ),
   );
 
-  // ======================================================
+  // ------------------------
   // REPORT FEATURE
-  // ======================================================
-
-  // Data Source
+  // ------------------------
   getIt.registerLazySingleton<ReportRemoteDataSource>(
         () => ReportRemoteDataSourceImpl(
       client: getIt<http.Client>(),
@@ -286,12 +300,10 @@ Future<void> init() async {
     ),
   );
 
-  // Repository
   getIt.registerLazySingleton<ReportRepository>(
         () => ReportRepositoryImpl(remote: getIt()),
   );
 
-  // Cubit (ONLY registerFactoryParam)
   getIt.registerFactoryParam<ReportCubit, bool, void>(
         (isSent, _) => ReportCubit(
       repository: getIt<ReportRepository>(),
@@ -299,8 +311,9 @@ Future<void> init() async {
     ),
   );
 
-
-  // Milestone Data Source
+  // ------------------------
+  // Milestone
+  // ------------------------
   getIt.registerLazySingleton<MilestoneRemoteDataSource>(
         () => MilestoneRemoteDataSourceImpl(
       client: getIt(),
@@ -308,18 +321,14 @@ Future<void> init() async {
     ),
   );
 
-// Repository
   getIt.registerLazySingleton<MilestoneRepository>(
         () => MilestoneRepositoryImpl(
-          remoteDataSource: getIt(),
+      remoteDataSource: getIt(),
     ),
   );
   getIt.registerFactory<MilestoneCubit>(
         () => MilestoneCubit(getIt<MilestoneRepository>()),
   );
-  // getIt.registerFactory<MilestoneReportsCubit>(
-  //       () => MilestoneReportsCubit(getIt<ReportRepository>()),
-  // );
   getIt.registerFactoryParam<MilestoneReportsCubit, String, void>(
         (milestoneId, _) => MilestoneReportsCubit(getIt<ReportRepository>()),
   );
@@ -331,10 +340,4 @@ Future<void> init() async {
   getIt.registerFactoryParam<MilestoneDocumentsCubit, String, void>(
         (milestoneId, _) => MilestoneDocumentsCubit(getIt<MilestoneRepository>()),
   );
-
-
-  // ------------------------
-  // WebSocket
-  // ------------------------
-  getIt.registerLazySingleton(() => StompNotificationService());
 }

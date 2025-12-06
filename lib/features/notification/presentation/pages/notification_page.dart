@@ -1,13 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/bloc/theme_bloc.dart';
-import '../../../../core/theme/domain/entity/theme_entity.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../websocket/cubit/websocket_notification_cubit.dart';
+import '../../../auth/presentation/provider/auth_provider.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -18,22 +17,40 @@ class NotificationPage extends StatefulWidget {
 
 class _NotificationPageState extends State<NotificationPage>
     with SingleTickerProviderStateMixin {
-  late TabController tab;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    tab = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
+
+    // [Safety Net] Buộc fetch lại dữ liệu khi vào trang này để đảm bảo đồng bộ
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      final user = auth.currentUser;
+      final token = auth.accessToken;
+
+      if (user != null && token != null) {
+        // connect() sẽ tự động fetch API trước, sau đó nối socket
+        context.read<WebSocketNotificationCubit>().connect(user.userId, token);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   String _formatTime(DateTime date) {
-    final diff = DateTime.now().difference(date);
+    final now = DateTime.now();
+    final diff = now.difference(date);
 
     if (diff.inMinutes < 1) return "Vừa xong";
     if (diff.inMinutes < 60) return "${diff.inMinutes} phút trước";
     if (diff.inHours < 24) return "${diff.inHours} giờ trước";
     if (diff.inDays == 1) return "Hôm qua";
-
     return DateFormat('dd/MM/yyyy HH:mm').format(date);
   }
 
@@ -41,10 +58,8 @@ class _NotificationPageState extends State<NotificationPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
     final Color primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
     final Color textColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -55,17 +70,17 @@ class _NotificationPageState extends State<NotificationPage>
         ),
         elevation: 0,
         bottom: TabBar(
-          controller: tab,
+          controller: _tabController,
           indicator: BoxDecoration(
-            color: textColor.withOpacity(0.15),
+            color: textColor.withOpacity(0.08),
             borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: primaryColor.withOpacity(0.2)),
           ),
-          indicatorAnimation: TabIndicatorAnimation.elastic,
-          indicatorPadding: const EdgeInsets.symmetric(horizontal: -60, vertical: -3),
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           labelColor: textColor,
-          unselectedLabelColor: textColor,
-          indicatorColor: primaryColor,
-
+          unselectedLabelColor: textColor.withOpacity(0.6),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: "Tất cả"),
             Tab(text: "Chưa đọc"),
@@ -74,12 +89,13 @@ class _NotificationPageState extends State<NotificationPage>
       ),
       body: BlocBuilder<WebSocketNotificationCubit, List<NotificationEntity>>(
         builder: (context, list) {
-          final unread = list.where((n) => !n.readStatus).toList();
+          final unreadList = list.where((n) => !n.readStatus).toList();
+
           return TabBarView(
-            controller: tab,
+            controller: _tabController,
             children: [
-              _buildList(context, list),
-              _buildList(context, unread),
+              _buildNotificationList(context, list, emptyMessage: "Bạn chưa có thông báo nào"),
+              _buildNotificationList(context, unreadList, emptyMessage: "Không có thông báo chưa đọc"),
             ],
           );
         },
@@ -87,7 +103,7 @@ class _NotificationPageState extends State<NotificationPage>
     );
   }
 
-  Widget _buildList(BuildContext context, List<NotificationEntity> items) {
+  Widget _buildNotificationList(BuildContext context, List<NotificationEntity> items, {required String emptyMessage}) {
     final theme = Theme.of(context);
 
     if (items.isEmpty) {
@@ -95,14 +111,14 @@ class _NotificationPageState extends State<NotificationPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.notifications_off_outlined,
-                size: 70, color: theme.colorScheme.onSurface.withOpacity(0.4)),
-            const SizedBox(height: 14),
+            Icon(Icons.notifications_none_outlined,
+                size: 80, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+            const SizedBox(height: 16),
             Text(
-              "Không có thông báo",
+              emptyMessage,
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
-                fontSize: 15,
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                fontSize: 16,
               ),
             ),
           ],
@@ -111,98 +127,173 @@ class _NotificationPageState extends State<NotificationPage>
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       itemCount: items.length,
-      separatorBuilder: (_, __) =>
-      const SizedBox(height: 10), // spacing đẹp hơn và thoáng hơn
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final n = items[index];
+        final notification = items[index];
+        final isRead = notification.readStatus;
 
         return Dismissible(
-          key: ValueKey(n.notificationRecipientId),
+          key: ValueKey(notification.notificationRecipientId),
           direction: DismissDirection.endToStart,
           background: Container(
             decoration: BoxDecoration(
-              color: Colors.green.shade600,
+              color: Colors.redAccent.shade200,
               borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const Icon(Icons.check_circle, color: Colors.white, size: 28),
+            child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
           ),
-          onDismissed: (_) {
-            context
-                .read<WebSocketNotificationCubit>()
-                .markAsRead(n.notificationRecipientId);
+          confirmDismiss: (direction) async {
+            // Có thể thêm dialog xác nhận xóa nếu cần
+            // Hiện tại dùng dismiss để đánh dấu đã đọc (nhanh)
+            context.read<WebSocketNotificationCubit>().markAsRead(notification.notificationRecipientId);
+            return false; // Trả về false để không xóa khỏi list UI, chỉ mark read
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            decoration: BoxDecoration(
-              color: n.readStatus
-                  ? theme.colorScheme.surfaceVariant.withOpacity(0.4)
-                  : theme.colorScheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: n.readStatus
-                    ? Colors.transparent
-                    : theme.colorScheme.primary.withOpacity(0.4),
-                width: 1.1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left indicator dot
-                Container(
-                  margin: const EdgeInsets.only(top: 6, right: 12),
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: n.readStatus
-                        ? Colors.transparent
-                        : theme.colorScheme.primary,
-                  ),
-                ),
+          child: InkWell(
+            onTap: () {
+              // 1. Logic Optimistic Update: Gọi Cubit để mark read + update UI ngay
+              if (!isRead) {
+                context.read<WebSocketNotificationCubit>().markAsRead(notification.notificationRecipientId);
+              }
 
-                // Content
-                Expanded(
-                  child: Column(
+              // 2. Logic Navigation (nếu có deepLink)
+              // if (notification.deepLink != null) { ... }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                // Logic màu nền: Chưa đọc -> Có màu nền nhẹ / Đã đọc -> Trong suốt
+                color: isRead
+                    ? theme.colorScheme.surface
+                    : theme.colorScheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isRead
+                      ? theme.dividerColor.withOpacity(0.1)
+                      : theme.colorScheme.primary.withOpacity(0.3),
+                  width: 1,
+                ),
+                boxShadow: isRead ? [] : [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon hoặc Avatar thông báo
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isRead
+                          ? theme.colorScheme.surfaceVariant
+                          : theme.colorScheme.primary.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      // Icon thay đổi tùy theo category (có thể customize thêm)
+                      _getIconForCategory(notification.category),
+                      size: 20,
+                      color: isRead
+                          ? theme.colorScheme.onSurfaceVariant
+                          : theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Nội dung chính
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          n.title,
-                          style: TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w700,
-                            color: n.readStatus
-                                ? theme.colorScheme.onSurface
-                                : theme.colorScheme.primary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                notification.title,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
+                                  color: isRead
+                                      ? theme.colorScheme.onSurface.withOpacity(0.8)
+                                      : theme.colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            // Dấu chấm xanh chỉ hiện khi chưa đọc
+                            if (!isRead)
+                              Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.only(left: 8),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: theme.colorScheme.error,
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          n.content,
+                          notification.content,
                           style: TextStyle(
                             fontSize: 14,
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            height: 1.4,
+                            color: theme.colorScheme.onSurface.withOpacity(isRead ? 0.6 : 0.8),
+                            fontWeight: isRead ? FontWeight.normal : FontWeight.w500,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 10),
-                        Text(
-                          _formatTime(n.sentAt),
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: theme.colorScheme.onSurfaceVariant,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _formatTime(notification.sentAt),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.outline,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ),
-                      ]),
-                ),
-              ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  // Helper để chọn icon (Optional)
+  IconData _getIconForCategory(String? category) {
+    final key = (category ?? '').toUpperCase();
+    switch (key) {
+      case 'SYSTEM':
+        return Icons.settings_suggest_rounded;
+      case 'PROJECT':
+        return Icons.work_outline_rounded;
+      case 'MESSAGE':
+        return Icons.chat_bubble_outline_rounded;
+      case 'ALERT':
+        return Icons.warning_amber_rounded;
+      default:
+        return Icons.notifications_none_rounded;
+    }
   }
 }

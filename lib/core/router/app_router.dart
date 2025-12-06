@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // Giữ lại nếu cần dùng cho các Bloc khác
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
-import 'package:labodc_mobile/features/project_application/presentation/pages/my_project_detail_page.dart';
 
 // Pages imports
 import '../../features/admin/presentation/pages/lab_admin_main_page.dart';
@@ -17,15 +15,11 @@ import '../../features/notification/presentation/pages/notification_page.dart';
 import '../../features/talent/presentation/pages/talent_main_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
 import '../../common/presentation/pages/setting_page.dart';
-import '../../features/hiring_projects/presentation/pages/project_detail_page.dart'; // add import
+import '../../features/hiring_projects/presentation/pages/project_detail_page.dart';
+import '../../features/project_application/presentation/pages/my_project_detail_page.dart';
 
 // Providers
 import '../../features/auth/presentation/provider/auth_provider.dart';
-
-// Notification
-import '../../features/notification/presentation/cubit/notification_cubit.dart';
-import '../../features/notification/domain/use_cases/get_notifications.dart';
-import '../../features/notification/domain/use_cases/register_device_token_use_case.dart';
 
 // Constants
 import '../../features/user_profile/data/models/user_profile_model.dart';
@@ -36,7 +30,7 @@ final sl = GetIt.instance;
 
 class AppRouter {
   static final GlobalKey<NavigatorState> _rootNavigatorKey =
-      GlobalKey<NavigatorState>();
+  GlobalKey<NavigatorState>();
 
   static GoRouter createRouter(AuthProvider authProvider) {
     debugPrint('AppRouter: Bắt đầu tạo GoRouter.');
@@ -70,47 +64,26 @@ class AppRouter {
         ),
 
         // === PROTECTED ROUTES ===
+
+        // 🟩 USER (Sửa lại: Trả về UserPage thay vì TalentMainPage)
         GoRoute(
           path: Routes.user,
           name: Routes.userName,
           builder: (context, state) {
             final user = authProvider.currentUser;
             if (user == null) return const LoginPage();
-
-            return BlocProvider(
-              create: (_) => NotificationCubit(
-                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
-                userId: user.userId,
-                authToken: user.accessToken,
-              ),
-              child: const TalentMainPage(),
-            );
+            return const TalentMainPage();
           },
         ),
 
-        // 🟩 LAB ADMIN (có BlocProvider)
+        // 🟩 LAB ADMIN
         GoRoute(
           path: Routes.labAdmin,
           name: Routes.labAdminName,
           builder: (context, state) {
             final user = authProvider.currentUser;
-            if (user == null) {
-              debugPrint(
-                "⚠️ AuthProvider chưa có user, chuyển hướng về login.",
-              );
-              return const LoginPage();
-            }
-
-            return BlocProvider(
-              create: (_) => NotificationCubit(
-                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
-                userId: user.userId,
-                authToken: user.accessToken,
-              ),
-              child: const LabAdminMainPage(),
-            );
+            if (user == null) return const LoginPage();
+            return const LabAdminMainPage();
           },
         ),
 
@@ -121,16 +94,7 @@ class AppRouter {
           builder: (context, state) {
             final user = authProvider.currentUser;
             if (user == null) return const LoginPage();
-
-            return BlocProvider(
-              create: (_) => NotificationCubit(
-                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
-                userId: user.userId,
-                authToken: user.accessToken,
-              ),
-              child: const TalentMainPage(),
-            );
+            return const TalentMainPage();
           },
         ),
 
@@ -141,16 +105,7 @@ class AppRouter {
           builder: (context, state) {
             final user = authProvider.currentUser;
             if (user == null) return const LoginPage();
-
-            return BlocProvider(
-              create: (_) => NotificationCubit(
-                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
-                userId: user.userId,
-                authToken: user.accessToken,
-              ),
-              child: const MentorMainPage(),
-            );
+            return const MentorMainPage();
           },
         ),
 
@@ -161,20 +116,11 @@ class AppRouter {
           builder: (context, state) {
             final user = authProvider.currentUser;
             if (user == null) return const LoginPage();
-
-            return BlocProvider(
-              create: (_) => NotificationCubit(
-                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
-                userId: user.userId,
-                authToken: user.accessToken,
-              ),
-              child: const CompanyMainPage(),
-            );
+            return const CompanyMainPage();
           },
         ),
 
-        // Project detail (protected page — uses same auth guard as other protected routes)
+        // === DETAIL PAGES ===
         GoRoute(
           path: Routes.projectDetail,
           name: Routes.projectDetailName,
@@ -209,59 +155,47 @@ class AppRouter {
             return EditProfilePage(user: user);
           },
         ),
+
+        // 🟩 NOTIFICATIONS
         GoRoute(
-        path: Routes.notifications,
+          path: Routes.notifications,
           name: Routes.notificationsName,
           builder: (context, state) {
             final user = authProvider.currentUser;
             if (user == null) return const LoginPage();
-
-            return BlocProvider(
-              create: (_) => NotificationCubit(
-                getNotificationsUseCase: sl<GetNotificationsUseCase>(),
-                registerDeviceTokenUseCase: sl<RegisterDeviceTokenUseCase>(),
-                userId: user.userId,
-                authToken: user.accessToken,
-              ),
-              child: const NotificationPage(),
-            );
+            // Đã có WebSocketNotificationCubit global, không cần BlocProvider ở đây
+            return const NotificationPage();
           },
         ),
-
       ],
     );
   }
 
-  // === PRIVATE METHODS ===
+  // === PRIVATE METHODS (Giữ nguyên) ===
 
   static String? _handleRedirect(
-    GoRouterState state,
-    AuthProvider authProvider,
-  ) {
+      GoRouterState state,
+      AuthProvider authProvider,
+      ) {
     final currentPath = state.uri.toString();
     final isAuthenticated = authProvider.isAuthenticated;
     final role = authProvider.currentUser?.role;
     final targetHomeRoute = getHomeRouteByRole(role);
 
-    debugPrint(
-      'AppRouter Redirect: $currentPath | Auth: $isAuthenticated | Role: $role | Init: ${authProvider.isInitialCheckComplete}',
-    );
+    // debugPrint('AppRouter Redirect: $currentPath | Auth: $isAuthenticated | Role: $role');
 
     if (currentPath == Routes.splash && !authProvider.isInitialCheckComplete) {
-      return null; // Chờ Splash load
+      return null;
     }
 
-    // 1️⃣ Chưa login mà vào protected route
     if (!isAuthenticated && _isProtectedRoute(currentPath)) {
       return Routes.login;
     }
 
-    // 2️⃣ Đã login nhưng vẫn ở login
     if (isAuthenticated && (currentPath == Routes.login)) {
       return targetHomeRoute;
     }
 
-    // 3️⃣ Đã login nhưng không đúng role
     if (isAuthenticated && _requiresRoleCheck(currentPath)) {
       if (!_hasRequiredRole(currentPath, role)) {
         return targetHomeRoute;
@@ -295,7 +229,7 @@ class AppRouter {
         return role == 'mentor';
       case Routes.company:
         return role == 'company';
-      case Routes.user:
+      case Routes.talent:
         return role == 'user' || role == null || role.isEmpty;
       default:
         return true;
@@ -316,7 +250,7 @@ class AppRouter {
         return Routes.company;
       case 'user':
       default:
-        return Routes.user;
+        return Routes.talent;
     }
   }
 

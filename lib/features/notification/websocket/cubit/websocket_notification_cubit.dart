@@ -1,87 +1,108 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/services/realtime/stomp_notification_service.dart';
-import '../../../auth/presentation/provider/auth_provider.dart';
-import '../../domain/entities/notification_entity.dart';
+import '../../../../features/notification/data/models/notification_model.dart';
+import '../../../../features/notification/domain/entities/notification_entity.dart';
 import '../../data/repositories_impl/notification_repository_impl.dart';
-import '../../../../core/error/failures.dart';
+import '../../../../core/services/realtime/stomp_notification_service.dart';
 
 class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
   final NotificationRepositoryImpl repository;
   final StompNotificationService stompService;
-  final String userId;
-  final AuthProvider auth;
-  bool _isInitialized = false;
+
+  // Lưu Subscription để quản lý
   StreamSubscription? _stompSub;
+  String? _currentUserId;
 
   WebSocketNotificationCubit(
       this.repository,
       this.stompService,
-      this.userId,
-      this.auth,
       ) : super([]);
 
-  Future<void> init({String? token}) async {
-    if (_isInitialized) return;
-    final accessToken = token ?? auth.accessToken;
-    if (userId.isEmpty || accessToken == null || accessToken.isEmpty) return;
+  Future<void> connect(String userId, String accessToken) async {
+    // 1. Luôn load lại API khi hàm này được gọi (để đảm bảo data mới nhất)
+    await _fetchInitialNotifications(userId, accessToken);
 
-    try {
-      final allRes =
-      await repository.fetchNotifications(userId: userId, token: accessToken);
-      allRes.fold((f) => print("❌ fetchNotifications: ${f.message}"),
-              (data) => emit(data));
-
-      await stompService.connect(userId: userId, accessToken: accessToken);
-      _stompSub = stompService.notificationsStream.listen((notif) {
-        emit([notif, ...state]);
-      });
-
-      _isInitialized = true;
-    } catch (e) {
-      print('❌ WebSocketNotificationCubit init error: $e');
+    // 2. Nếu đã kết nối với đúng user này rồi, KHÔNG connect lại Socket
+    // Chỉ cần đảm bảo subscription đang lắng nghe
+    if (stompService.isConnected && _currentUserId == userId) {
+      debugPrint("⚡ [Cubit] Socket already connected. Skipping reconnect.");
+      if (_stompSub == null) _listenToStream(); // Đề phòng subscription bị mất
+      return;
     }
+
+    _currentUserId = userId;
+
+    // 3. Kết nối Socket & Lắng nghe
+    debugPrint("🚀 [Cubit] Initializing Socket Connection...");
+
+    // Hủy lắng nghe cũ (nếu có)
+    await _stompSub?.cancel();
+
+    // Bắt đầu lắng nghe TRƯỚC hoặc SAU khi connect đều được,
+    // miễn là cùng 1 instance service.
+    _listenToStream();
+
+    await stompService.connect(userId: userId, accessToken: accessToken);
+  }
+
+  void _listenToStream() {
+    debugPrint("🎧 [Cubit] Start listening to notification stream...");
+
+    // StreamController là broadcast nên có thể listen nhiều lần
+    _stompSub = stompService.notificationsStream.listen((notif) {
+      debugPrint("🔔 [Cubit] Realtime Notification Received: ${notif.title}");
+      _onNotificationReceived(notif);
+    });
+  }
+
+  void _onNotificationReceived(NotificationEntity notif) {
+    // [FIX LỖI UI KHÔNG CẬP NHẬT]
+    // Phải tạo ra một List MỚI HOÀN TOÀN (List.of hoặc List.from)
+    final currentList = List<NotificationEntity>.of(state);
+
+    // Kiểm tra trùng lặp (nếu mạng lag socket bắn 2 lần)
+    final isExist = currentList.any((e) => e.notificationRecipientId == notif.notificationRecipientId);
+
+    if (!isExist) {
+      // Thêm vào đầu danh sách
+      currentList.insert(0, notif);
+      debugPrint("✅ [Cubit] Emitting new state with ${currentList.length} items");
+      emit(currentList);
+    }
+  }
+
+  Future<void> _fetchInitialNotifications(String userId, String token) async {
+    final result = await repository.fetchNotifications(userId: userId, token: token);
+    result.fold(
+          (failure) => debugPrint("❌ API Error: ${failure.message}"),
+          (data) {
+        debugPrint("📥 API Fetched ${data.length} items");
+        emit(data);
+      },
+    );
   }
 
   Future<void> markAsRead(String notificationRecipientId) async {
     try {
-      print('🔄 Sending markAsRead via STOMP: $notificationRecipientId');
       stompService.markAsRead(notificationRecipientId);
-
-      // Cập nhật local UI state ngay
-      final updated = state
-          .map((n) => n.notificationRecipientId == notificationRecipientId
-          ? n.copyWith(readStatus: true)
-          : n)
-          .toList();
-      emit(updated);
-
-      print('✅ Marked as read locally (sent via STOMP)');
-    } catch (e, st) {
-      print('❌ markAsRead via STOMP failed: $e');
-      print('Stack trace: $st');
+      final updatedList = state.map((n) {
+        if (n.notificationRecipientId == notificationRecipientId) {
+          return n.copyWith(readStatus: true);
+        }
+        return n;
+      }).toList();
+      emit(updatedList);
+    } catch (e) {
+      debugPrint("❌ Mark read error: $e");
     }
   }
 
-
-
-  Future<void> refresh({String? token}) async {
-    final accessToken = token ?? auth.accessToken;
-    if (accessToken == null || accessToken.isEmpty) return;
-    final res = await repository.fetchNotifications(userId: userId, token: accessToken);
-    res.fold((f) => print("❌ refresh: ${f.message}"), (data) => emit(data));
-  }
-
-  Future<void> reconnect({String? newToken}) async {
-    final accessToken = newToken ?? auth.accessToken;
-    if (accessToken == null || accessToken.isEmpty) return;
-    await stompService.reconnectWithNewToken(userId, accessToken);
-  }
-
-  @override
-  Future<void> close() async {
+  Future<void> disconnect() async {
     await _stompSub?.cancel();
+    _stompSub = null;
     stompService.disconnect();
-    return super.close();
+    _currentUserId = null;
+    emit([]);
   }
 }

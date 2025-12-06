@@ -6,29 +6,36 @@ class NotificationModel extends NotificationEntity {
     required super.type,
     required super.title,
     required super.content,
-    required super.data,
+    super.data,
     required super.category,
     required super.priority,
-    required super.deepLink,
+    super.deepLink,
     required super.sentAt,
     required super.readStatus,
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      notificationRecipientId:
-      json['notificationRecipientId'] ?? json['id'] ?? '',
-      type: json['type'] ?? '',
-      title: json['title'] ?? '',
-      content: json['content'] ?? '',
-      data: json['data'] ?? {},
-      category: json['category'] ?? '',
-      priority: json['priority'] ?? '',
-      deepLink: json['deepLink'] ?? '',
-      sentAt: DateTime.tryParse(
-          json['sentAt'] ?? json['createdAt'] ?? json['timestamp'] ?? '') ??
-          DateTime.now(),
-      readStatus: json['readStatus'] ?? false,
+      // [SAFE PARSE] Sử dụng toString() và null check để tránh crash
+      notificationRecipientId: json['notificationRecipientId']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'GENERAL',
+      title: json['title']?.toString() ?? 'Thông báo',
+      content: json['content']?.toString() ?? '',
+
+      // Xử lý data map an toàn
+      data: json['data'] is Map<String, dynamic> ? json['data'] : null,
+
+      category: json['category']?.toString() ?? 'SYSTEM',
+      priority: json['priority']?.toString() ?? 'LOW',
+      deepLink: json['deepLink']?.toString(),
+
+      // [DATE FIX] DateTime.tryParse an toàn hơn
+      sentAt: json['sentAt'] != null
+          ? DateTime.tryParse(json['sentAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+
+      // Xử lý boolean an toàn
+      readStatus: json['readStatus'] == true,
     );
   }
 

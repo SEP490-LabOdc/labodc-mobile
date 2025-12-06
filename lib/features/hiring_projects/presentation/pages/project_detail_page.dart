@@ -924,16 +924,8 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         }
       },
       child: Scaffold(
-        backgroundColor: theme.colorScheme.surfaceVariant,
         appBar: AppBar(
           elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: theme.colorScheme.onSurface,
-            ),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
           title: Text(
             'Chi tiết dự án',
             style: TextStyle(fontWeight: FontWeight.bold),

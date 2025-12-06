@@ -1,10 +1,9 @@
-// lib/features/talent/presentation/pages/explore_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:labodc_mobile/shared/widgets/service_chip.dart';
 
-// Import các file BLoC/Cubit và Entity đã định nghĩa
+// Import các file BLoC/Cubit và Entity
 import '../../../../core/get_it/get_it.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/router/route_constants.dart';
@@ -12,9 +11,9 @@ import '../../../hiring_projects/domain/entities/project_entity.dart';
 import '../../../hiring_projects/presentation/cubit/hiring_projects_cubit.dart';
 import '../../../hiring_projects/presentation/cubit/hiring_projects_state.dart';
 import '../../../hiring_projects/presentation/pages/hiring_projects_page.dart';
-import '../../../hiring_projects/presentation/pages/project_detail_page.dart'; // add import
+import '../../../hiring_projects/presentation/pages/project_detail_page.dart';
+import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 
-import '../../../../shared/widgets/project_card.dart';
 import '../../../../shared/widgets/reusable_card.dart';
 import '../../../../shared/widgets/expandable_text.dart';
 import '../widgets/talent_list_item.dart';
@@ -37,85 +36,93 @@ class _ExplorePageState extends State<ExplorePage> {
     return BlocProvider<HiringProjectsCubit>(
       create: (context) => getIt<HiringProjectsCubit>()..loadInitialProjects(),
       child: Scaffold(
-        body: CustomScrollView(
-          slivers: [
-            _buildSliverAppBar(theme),
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          title: Text(
+            'Khám phá',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          elevation: 0,
+          centerTitle: false,
+        ),
+        body: Column(
+          children: [
+            // --- SEARCH BAR (Fixed at top) ---
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+              ),
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    hintText: "Tìm kiếm dự án, kỹ năng...",
+                    hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: theme.primaryColor, size: 22),
+                    suffixIcon: Container(
+                      margin: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)
+                          ]
+                      ),
+                      child: Icon(Icons.tune, size: 18, color: Colors.grey.shade700),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    isDense: true,
+                  ),
+                  onSubmitted: (value) {
+                    // TODO: Handle search
+                  },
+                ),
+              ),
+            ),
 
-            BlocBuilder<HiringProjectsCubit, HiringProjectsState>(
+            // --- CONTENT LIST (Scrollable) ---
+            Expanded(
+              child: BlocBuilder<HiringProjectsCubit, HiringProjectsState>(
                 builder: (context, state) {
-                  // Kiểm tra nếu đang loading lần đầu, không hiển thị các section khác
                   final isFirstLoad = state is HiringProjectsInitial || (state is HiringProjectsLoading && state.isFirstFetch);
                   if (isFirstLoad) {
-                    return const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator.adaptive()),
-                    );
+                    return const Center(child: CircularProgressIndicator.adaptive());
                   }
 
-                  return SliverPadding(
-                    padding: const EdgeInsets.all(16.0),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate(
-                        AnimationConfiguration.toStaggeredList(
-                          duration: const Duration(milliseconds: 375),
-                          childAnimationBuilder: (widget) => SlideAnimation(
-                            verticalOffset: 50.0,
-                            child: FadeInAnimation(child: widget),
-                          ),
-                          children: [
-                            // 1. Quick Filters
-                            _buildQuickFilters(theme),
-                            const SizedBox(height: 24),
-
-                            // 2. New Projects Section (Tích hợp Cubit)
-                            _buildHiringProjectsSection(context, theme),
-                            const SizedBox(height: 24),
-
-                            // 3. Suggested Talents Section
-                            // _buildSuggestedTalentsSection(theme),
-                          ],
+                  return AnimationLimiter(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                      children: AnimationConfiguration.toStaggeredList(
+                        duration: const Duration(milliseconds: 375),
+                        childAnimationBuilder: (widget) => SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(child: widget),
                         ),
+                        children: [
+                          _buildQuickFilters(theme),
+                          const SizedBox(height: 24),
+                          _buildHiringProjectsSection(context, theme),
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
                   );
-                }
+                },
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSliverAppBar(ThemeData theme) {
-    return SliverAppBar(
-      title: const Text("Khám phá", style: TextStyle(fontWeight: FontWeight.bold),),
-      pinned: true,
-      floating: true,
-      expandedHeight: 120,
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.pin,
-        titlePadding: EdgeInsets.zero,
-        background: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 60, 16, 8),
-          child: Container(
-            alignment: Alignment.bottomCenter,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: "Tìm kiếm dự án, hoặc tài năng...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
-              ),
-              onSubmitted: (value) {
-                // TODO: Xử lý logic tìm kiếm
-              },
-            ),
-          ),
         ),
       ),
     );
@@ -125,19 +132,41 @@ class _ExplorePageState extends State<ExplorePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Lọc nhanh theo chuyên môn",
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        Row(
+          children: [
+            Icon(Icons.auto_awesome, size: 18, color: theme.primaryColor),
+            const SizedBox(width: 8),
+            Text(
+              "Gợi ý cho bạn",
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _popularFilters.map((filter) => ServiceChip(
-            name: filter,
-            color: '#${(0xFF000000 + filter.hashCode % 0xFFFFFF).toRadixString(16).padLeft(6, '0')}',
-            small: false,
-          )).toList(),
+        const SizedBox(height: 16),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _popularFilters.map((filter) => Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: FilterChip(
+                label: Text(filter),
+                onSelected: (bool selected) {},
+                backgroundColor: Colors.white,
+                selectedColor: theme.primaryColor.withOpacity(0.1),
+                checkmarkColor: theme.primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                  fontSize: 13,
+                ),
+              ),
+            )).toList(),
+          ),
         ),
       ],
     );
@@ -155,32 +184,29 @@ class _ExplorePageState extends State<ExplorePage> {
 
         if (state is HiringProjectsLoaded) {
           projectsToShow = state.projects.take(state.displayLimit).toList();
-
-          // 2. Logic hiển thị nút "Xem tất cả" (từ 3 lên 10)
           showViewAllButton = state.displayLimit == 3 && state.totalElements > 3 && projectsToShow.length >= 3;
-
-          // 3. Logic hiển thị nút "Tải thêm" (khi đã >= 10 và còn data)
           showLoadMoreButton = state.displayLimit >= cubit.getInitialPageSize() && state.hasNext;
 
           if (showLoadMoreButton) {
             footer = Padding(
-              padding: const EdgeInsets.only(top: 16.0),
-              child: TextButton(
-                onPressed: cubit.loadMoreProjects,
-                child: Text('Tải thêm ${cubit.getSubsequentPageSize()} dự án'),
+              padding: const EdgeInsets.only(top: 24.0),
+              child: Center(
+                child: FilledButton.tonal(
+                  onPressed: cubit.loadMoreProjects,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: Text('Tải thêm ${cubit.getSubsequentPageSize()} dự án'),
+                ),
               ),
-            );
-          } else if (!state.hasNext && state.totalElements > 0) {
-            footer = const Padding(
-              padding: EdgeInsets.only(top: 16.0),
             );
           }
         } else if (state is HiringProjectsLoading) {
           projectsToShow = state.oldProjects.take(cubit.getCurrentDisplayLimit()).toList();
           isLoadingMore = true;
-          footer = const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator.adaptive()));
+          footer = const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator.adaptive()));
         } else if (state is HiringProjectsError) {
-          footer = Center(child: Text('Lỗi tải dữ liệu: ${state.message}', style: const TextStyle(color: Colors.red)));
+          footer = Center(child: Text('Lỗi: ${state.message}', style: TextStyle(color: theme.colorScheme.error)));
         }
 
         return Column(
@@ -190,33 +216,34 @@ class _ExplorePageState extends State<ExplorePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Dự án mới: Cơ hội hàng đầu",
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  "Dự án mới nhất",
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
                 if (showViewAllButton)
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const HiringProjectsPage(),
-                        ),
-                      );
-                    },
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const HiringProjectsPage()),
+                    ),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     child: const Text("Xem tất cả"),
-                  )
-                else if (showLoadMoreButton && !isLoadingMore)
-                  TextButton(
-                    onPressed: cubit.loadMoreProjects,
-                    child: const Text("Tải thêm"),
                   )
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+
             if (projectsToShow.isEmpty && !isLoadingMore && !(state is HiringProjectsInitial) && !(state is HiringProjectsError))
-              const Center(child: Padding(padding: EdgeInsets.all(16), child: Text('Không có dự án mới nào.')))
+              _buildEmptyState()
             else
-            // Hiển thị danh sách dự án
-              ...projectsToShow.map((project) => HiringProjectListItem(project: project)).toList(),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: projectsToShow.length,
+                separatorBuilder: (ctx, index) => const SizedBox(height: 16),
+                itemBuilder: (ctx, index) => HiringProjectCard(project: projectsToShow[index]),
+              ),
 
             footer,
           ],
@@ -225,42 +252,34 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  // Widget _buildSuggestedTalentsSection(ThemeData theme) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Text(
-  //         "Talent khác: Có thể bạn muốn kết nối",
-  //         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-  //       ),
-  //       const SizedBox(height: 12),
-  //       const TalentListItem(
-  //         name: "Trần Thị B",
-  //         role: "Chuyên gia Backend (Java/Spring)",
-  //         avatarUrl: "https://randomuser.me/api/portraits/women/12.jpg",
-  //         skills: ["Java", "Spring Boot", "REST API", "MongoDB"],
-  //       ),
-  //       const TalentListItem(
-  //         name: "Lê Văn C",
-  //         role: "Frontend & Mobile (React Native)",
-  //         avatarUrl: "https://randomuser.me/api/portraits/men/45.jpg",
-  //         skills: ["React Native", "TypeScript", "Redux", "CI/CD"],
-  //       ),
-  //     ],
-  //   );
-  // }
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+          Text(
+            "Không tìm thấy dự án nào",
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-// Widget hiển thị ProjectEntity
-class HiringProjectListItem extends StatelessWidget {
+// 🔥 Widget Card Dự Án Mới (Được thiết kế lại chuẩn Enterprise UI)
+class HiringProjectCard extends StatelessWidget {
   final ProjectEntity project;
 
-  const HiringProjectListItem({required this.project, super.key});
-
-  String _formatDateSafe(DateTime? d) {
-    if (d == null) return 'N/A';
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
+  const HiringProjectCard({required this.project, super.key});
 
   String _colorHexFromString(String input) {
     final hash = input.hashCode;
@@ -270,44 +289,174 @@ class HiringProjectListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final companyName = project.skills.isNotEmpty ? project.skills.first.description : 'Labodc';
-    final deadline = _formatDateSafe(project.endDate);
-    return ReusableCard(
-      onTap: () {
-        AppRouter.pushNamed(Routes.projectDetailName, pathParameters: {'id': project.projectId});
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final companyName = project.skills.isNotEmpty ? project.skills.first.description : 'Labodc Inc.';
+    final deadline = project.endDate != null ? ProjectDataFormatter.formatDate(project.endDate!) : 'N/A';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            AppRouter.pushNamed(Routes.projectDetailName, pathParameters: {'id': project.projectId});
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // === HEADER ===
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.business_center_outlined, color: Colors.blue.shade700, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // HERO Title
+                          Hero(
+                            tag: 'hiring_project_title_${project.projectId}',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Text(
+                                project.projectName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            companyName,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // === SKILLS (Chips) ===
+                if (project.skills.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: project.skills.map((s) {
+                      final hex = _colorHexFromString(s.name);
+                      return ServiceChip(name: s.name, color: hex, small: true);
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // === DESCRIPTION ===
+                Text(
+                  project.description,
+                  style: TextStyle(color: Colors.grey.shade700, height: 1.5, fontSize: 14),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(height: 1, thickness: 0.5),
+                ),
+
+                // === FOOTER (Metrics) ===
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildFooterItem(
+                      icon: Icons.people_outline,
+                      text: "${project.currentApplicants} Ứng viên",
+                      color: Colors.blue.shade700,
+                      bgColor: Colors.blue.shade50,
+                    ),
+
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Hạn: $deadline",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterItem({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
           Text(
-            project.projectName,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            companyName,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
-          ),
-          const SizedBox(height: 8),
-          ExpandableText(text: project.description, maxLines: 2, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: project.skills.take(6).map((s) {
-              final hex = _colorHexFromString(s.name);
-              return ServiceChip(name: s.name, color: hex, small: true);
-            }).toList(),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Ứng viên: ${project.currentApplicants}', style: Theme.of(context).textTheme.bodySmall),
-              Text('Hạn: $deadline', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.redAccent)),
-            ],
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),

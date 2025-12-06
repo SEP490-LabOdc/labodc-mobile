@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/error/failures.dart';
@@ -15,7 +16,8 @@ class NotificationRemoteDataSource {
   Failure _handleResponseError(http.Response response) {
     String errorMessage = "Lỗi máy chủ (${response.statusCode}).";
     try {
-      final jsonResponse = jsonDecode(response.body);
+      // Cố gắng đọc message từ body lỗi nếu có
+      final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       errorMessage = jsonResponse['message']?.toString() ?? errorMessage;
     } catch (_) {}
 
@@ -58,9 +60,22 @@ class NotificationRemoteDataSource {
         },
       ).timeout(const Duration(seconds: 15));
 
+      // [DEBUG FIX] In ra body raw để kiểm tra cấu trúc JSON
+      debugPrint('📥 API Response [${response.statusCode}]: ${utf8.decode(response.bodyBytes)}');
+
       if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        final List<dynamic> dataList = jsonResponse['data'] ?? [];
+        final bodyStr = utf8.decode(response.bodyBytes);
+        final jsonResponse = jsonDecode(bodyStr);
+
+        List<dynamic> dataList = [];
+
+        // [LOGIC FIX] Xử lý an toàn: API có thể trả về { "data": [...] } hoặc trực tiếp [...]
+        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+          dataList = jsonResponse['data'] ?? [];
+        } else if (jsonResponse is List) {
+          dataList = jsonResponse;
+        }
+
         return dataList.map((e) => NotificationModel.fromJson(e)).toList();
       } else {
         throw _handleResponseError(response);
@@ -70,6 +85,7 @@ class NotificationRemoteDataSource {
     } on TimeoutException {
       throw const NetworkFailure();
     } catch (e) {
+      debugPrint("❌ Exception in _fetchList: $e");
       throw UnknownFailure(e.toString());
     }
   }
