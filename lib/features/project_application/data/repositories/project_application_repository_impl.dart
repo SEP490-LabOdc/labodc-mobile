@@ -6,6 +6,7 @@ import '../../../../core/error/failures.dart';
 import '../../domain/repositories/project_application_repository.dart';
 import '../data_sources/project_application_remote_data_source.dart';
 import '../models/project_applicant_model.dart';
+import '../models/project_document_model.dart';
 import '../models/submitted_cv_model.dart';
 import '../models/uploaded_file_model.dart';
 
@@ -152,6 +153,20 @@ class ProjectApplicationRepositoryImpl implements ProjectApplicationRepository {
       return Left(
         ServerFailure(e.toString(), 500),
       );
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProjectDocumentModel>>> getProjectDocuments(String projectId) async {
+    try {
+      final result = await remoteDataSource.getProjectDocuments(projectId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
     }
   }
 

@@ -225,13 +225,16 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                             color: theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            p.companyName!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          Expanded(
+                            child: Text(
+                                p.companyName!,
+                                maxLines: 2,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          )
+                          )
                         ],
                       ),
                   ],
@@ -254,6 +257,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
             ],
           ),
         ],
@@ -922,9 +926,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       child: Scaffold(
         backgroundColor: theme.colorScheme.surfaceVariant,
         appBar: AppBar(
-          backgroundColor: theme.colorScheme.surfaceVariant,
           elevation: 0,
-          centerTitle: true,
           leading: IconButton(
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
@@ -934,10 +936,10 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
           ),
           title: Text(
             'Chi tiết dự án',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.onSurface,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())

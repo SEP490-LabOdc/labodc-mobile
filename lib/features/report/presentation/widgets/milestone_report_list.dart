@@ -136,15 +136,21 @@ class _ReportCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        r.reporterName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            r.reporterName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const Spacer(),
+                          _statusBadge(r.status)
+                        ],
                       ),
-                      const SizedBox(height: 4),
+
                       Row(
                         children: [
                           Icon(Icons.access_time_rounded,
@@ -284,4 +290,37 @@ class _ReportCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _statusBadge(String status) {
+  // Sử dụng formatter mới
+  final color = ProjectDataFormatter.getReportStatusColor(status);
+  final label = ProjectDataFormatter.translateReportStatus(status);
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      color: color.withOpacity(0.1),
+      border: Border.all(color: color.withOpacity(0.2)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      ],
+    ),
+  );
 }

@@ -6,16 +6,15 @@ import '../../../../core/get_it/get_it.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/network_image_with_fallback.dart';
 import '../../../../shared/widgets/expandable_text.dart';
-import '../../../../shared/widgets/reusable_card.dart';
 
 import '../../../hiring_projects/data/models/project_detail_model.dart';
 import '../../../hiring_projects/domain/repositories/project_repository.dart';
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 
-// ⭐ thêm import này
 import '../../../auth/presentation/provider/auth_provider.dart';
 import '../../../milestone/presentation/cubit/milestone_cubit.dart';
 import '../../../project_application/presentation/pages/project_applicants_page.dart';
+import '../widgets/project_documents_tab.dart';
 
 class MyProjectDetailPage extends StatefulWidget {
   final String projectId;
@@ -70,28 +69,33 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final authProvider = context.watch<AuthProvider>();
     final role = (authProvider.currentUser?.role ?? '').toUpperCase();
     final isMentor = role == 'MENTOR';
 
+    final isDark = theme.brightness == Brightness.dark;
+
+    final Color primaryColor = isDark
+        ? AppColors.darkPrimary
+        : AppColors.primary;
+    final Color textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.textPrimary;
+
     return DefaultTabController(
       length: 5,
       child: Scaffold(
-        backgroundColor: theme.colorScheme.surfaceVariant,
-
+        backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
           title: const Text("Chi tiết dự án", style: TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.colorScheme.onPrimary,
           elevation: 0,
           bottom: TabBar(
             controller: _tab,
             isScrollable: true,
-            indicator: BoxDecoration(
-              color: theme.colorScheme.onPrimary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
+            tabAlignment: TabAlignment.start,
+            labelColor: textColor,
+            unselectedLabelColor: Colors.grey.shade600,
+            indicatorColor: theme.primaryColor,
             tabs: const [
               Tab(text: "Tổng quan"),
               Tab(text: "Cột mốc"),
@@ -111,7 +115,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
             ? _buildEmptyView(theme)
             : _buildContent(theme),
 
-        // ⭐⭐ NÚT CHỈ HIỂN THỊ CHO MENTOR ⭐⭐
+        // FAB
         floatingActionButton:
         (isMentor && project != null && !loading && errorMessage == null)
             ? FloatingActionButton.extended(
@@ -124,26 +128,23 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
               ),
             );
           },
-          label: const Text("Xem danh sách ứng viên"),
+          label: const Text("Ứng viên"),
           icon: const Icon(Icons.people_alt_outlined),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.colorScheme.onPrimary,
         )
             : null,
       ),
     );
   }
 
-
   Widget _buildErrorView(ThemeData theme) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.error_outline, color: theme.colorScheme.error, size: 40),
-        const SizedBox(height: 8),
-        Text(errorMessage ?? "Đã xảy ra lỗi"),
+        Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
         const SizedBox(height: 12),
-        OutlinedButton(onPressed: _fetchProject, child: const Text("Thử lại")),
+        Text(errorMessage ?? "Đã xảy ra lỗi", style: TextStyle(color: theme.colorScheme.error)),
+        const SizedBox(height: 16),
+        FilledButton.tonal(onPressed: _fetchProject, child: const Text("Thử lại")),
       ],
     ),
   );
@@ -157,7 +158,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       children: [
         _buildOverviewTab(project!),
         _buildMilestoneTab(project!),
-        const Center(child: Text("Tệp tin dự án")),
+        _buildFilesTab(project!),
         const Center(child: Text("Hoạt động dự án")),
         const Center(child: Text("Hóa đơn dự án")),
       ],
@@ -166,191 +167,226 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
 
   Widget _buildOverviewTab(ProjectDetailModel p) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeaderSection(p),
+          _buildMainInfoCard(p),
           const SizedBox(height: 20),
-          _buildProjectInfoSection(p),
+          _buildDescriptionCard(p.description),
           const SizedBox(height: 20),
-          _buildDescriptionSection(p.description),
+          _buildTeamSection("Thành viên", p.talents, isMentor: false),
           const SizedBox(height: 20),
-          _buildMembersSection(p.talents),
-          const SizedBox(height: 20),
-          _buildMentorsSection(p.mentors),
+          _buildTeamSection("Giảng viên", p.mentors, isMentor: true),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderSection(ProjectDetailModel p) {
-    final theme = Theme.of(context);
-
+  Widget _buildMainInfoCard(ProjectDetailModel p) {
     final statusColor = ProjectDataFormatter.getStatusColor(p.status);
     final statusText = ProjectDataFormatter.translateStatus(p.status);
 
-    return ReusableCard(
+    return Container(
       padding: const EdgeInsets.all(20),
-      backgroundColor: theme.colorScheme.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(p.title,
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Text("Mã dự án: ${p.id}",
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 12),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(statusText,
-                style: TextStyle(
-                    color: statusColor, fontWeight: FontWeight.bold)),
-          ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
         ],
       ),
-    );
-  }
-
-  Widget _buildProjectInfoSection(ProjectDetailModel p) {
-    final theme = Theme.of(context);
-
-    return ReusableCard(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Thông tin dự án",
-              style:
-              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: statusColor.withOpacity(0.2)),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              Text(
+                "Mã: ${p.id.substring(0, 8).toUpperCase()}",
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            p.title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (p.companyName != null)
+            Row(
+              children: [
+                Icon(Icons.business, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 6),
+                Text(
+                  p.companyName!,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                ),
+              ],
+            ),
 
-          _infoRow("Khách hàng", p.companyName ?? "—"),
-          _infoRow("Ngân sách",
-              ProjectDataFormatter.formatCurrency(context, p.budget)),
-          _infoRow("Ngày bắt đầu",
-              p.startDate != null ? ProjectDataFormatter.formatDate(p.startDate!) : "—"),
-          _infoRow("Ngày kết thúc",
-              p.endDate != null ? ProjectDataFormatter.formatDate(p.endDate!) : "—"),
-
-          const SizedBox(height: 16),
-          Text("Người tạo", style: theme.textTheme.labelMedium),
-          const SizedBox(height: 6),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(height: 1),
+          ),
 
           Row(
             children: [
-              const CircleAvatar(radius: 18, child: Icon(Icons.person)),
-              const SizedBox(width: 10),
-              Text("Đom Đóm"),
+              Expanded(
+                child: _buildInfoItem(
+                  Icons.calendar_today_outlined,
+                  "Bắt đầu",
+                  p.startDate != null ? ProjectDataFormatter.formatDate(p.startDate!) : "—",
+                ),
+              ),
+              Expanded(
+                child: _buildInfoItem(
+                  Icons.event_available_outlined,
+                  "Kết thúc",
+                  p.endDate != null ? ProjectDataFormatter.formatDate(p.endDate!) : "—",
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            Icons.monetization_on_outlined,
+            "Ngân sách",
+            ProjectDataFormatter.formatCurrency(context, p.budget),
+            isBold: true,
+            valueColor: Colors.green.shade700,
           ),
         ],
       ),
     );
   }
 
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: const TextStyle(color: Colors.black54))),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
+  Widget _buildInfoItem(IconData icon, String label, String value, {bool isBold = false, Color? valueColor}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+            color: valueColor ?? Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildDescriptionSection(String description) {
-    final theme = Theme.of(context);
-
-    return ReusableCard(
+  Widget _buildDescriptionCard(String description) {
+    return Container(
       padding: const EdgeInsets.all(20),
-      child: ExpandableText(
-        text: description,
-        maxLines: 6,
-        style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-    );
-  }
-
-  Widget _buildMembersSection(List<ProjectTalentModel> members) {
-    final theme = Theme.of(context);
-
-    return ReusableCard(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Thành viên",
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          const Text("Mô tả dự án", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-
-          if (members.isEmpty)
-            Text("Chưa có thành viên.",
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-
-          ...members.map((t) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: NetworkImageWithFallback(
-                imageUrl: t.avatar ?? "",
-                width: 42,
-                height: 42,
-                fallbackIcon: Icons.person,
-              ),
-            ),
-            title: Text(t.name),
-            subtitle: Text(t.roleName),
-          )),
+          ExpandableText(
+            text: description,
+            maxLines: 5,
+            style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.black87),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMentorsSection(List<ProjectMentorModel> mentors) {
-    final theme = Theme.of(context);
+  Widget _buildTeamSection(String title, List members, {required bool isMentor}) {
+    if (members.isEmpty) return const SizedBox.shrink();
 
-    return ReusableCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Giảng viên",
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: members.length,
+            separatorBuilder: (_, __) => Divider(height: 1, thickness: 0.5, color: Colors.grey.shade100, indent: 70),
+            itemBuilder: (_, index) {
+              final m = members[index];
+              // Xử lý dynamic model map từ json hoặc object
+              final avatar = m is Map ? m['avatar'] : (m.avatar);
+              final name = m is Map ? m['name'] : (m.name);
+              final roleName = m is Map ? m['roleName'] : (m.roleName);
 
-          if (mentors.isEmpty)
-            Text("Không có giảng viên.",
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-
-          ...mentors.map((m) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: NetworkImageWithFallback(
-                imageUrl: m.avatar ?? "",
-                width: 42,
-                height: 42,
-                fallbackIcon: Icons.person,
-              ),
-            ),
-            title: Text(m.name),
-            subtitle: Text(m.roleName),
-          )),
-        ],
-      ),
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: NetworkImageWithFallback(
+                      imageUrl: avatar ?? "",
+                      width: 44,
+                      height: 44,
+                      fallbackIcon: Icons.person,
+                    ),
+                  ),
+                ),
+                title: Text(name ?? "N/A", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                subtitle: Text(roleName ?? (isMentor ? "Mentor" : "Thành viên"), style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -361,10 +397,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
     );
   }
 
-  Widget _buildFilesTab() => const Center(child: Text("Tệp tin & hình ảnh dự án"));
-
-  Widget _buildActivityNoteTab() =>
-      const Center(child: Text("Hoạt động & ghi chú"));
-
-  Widget _buildInvoiceTab() => const Center(child: Text("Hóa đơn dự án"));
+  Widget _buildFilesTab(ProjectDetailModel p) {
+    return ProjectDocumentsTab(projectId: p.id);
+  }
 }

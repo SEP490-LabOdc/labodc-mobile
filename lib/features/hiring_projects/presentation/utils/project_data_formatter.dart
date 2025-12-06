@@ -1,5 +1,3 @@
-// File: lib/features/hiring_projects/presentation/utils/project_data_formatter.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -14,22 +12,6 @@ class ProjectDataFormatter {
   static String formatDateTime(DateTime date) {
     return DateFormat('dd/MM/yyyy HH:mm').format(date);
   }
-
-  // static String formatCurrency(BuildContext context, double? amount) {
-  //   if (amount == null || amount == 0) return '0';
-  //   final theme = Theme.of(context);
-  //
-  //
-  //   try {
-  //     return NumberFormat.currency(
-  //       locale: 'en_US',
-  //       symbol: '\$',
-  //       decimalDigits: 0,
-  //     ).format(amount);
-  //   } catch (e) {
-  //     return '\$${amount.toStringAsFixed(0)}';
-  //   }
-  // }
 
   static String formatCurrency(BuildContext context, double? amount) {
     if (amount == null || amount == 0) return '0 VND';
@@ -47,24 +29,27 @@ class ProjectDataFormatter {
     }
   }
 
+  // --- PROJECT STATUS ---
 
   static Color getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case 'PENDING':
-      case 'ĐANG CHỜ':
         return Colors.orange;
-      case 'ACTIVE':
-      case 'HOẠT ĐỘNG':
-        return Colors.green;
-      case 'COMPLETED':
-      case 'HOÀN THÀNH':
-        return Colors.blue;
-      case 'PLANNING':
-      case 'ĐANG LẬP KẾ HOẠCH':
-        return Colors.purple;
-      case 'CANCELLED':
-      case 'ĐÃ HỦY':
+      case 'UPDATE_REQUIRED':
+        return Colors.deepOrange;
+      case 'REJECTED':
         return Colors.red;
+      case 'PLANNING':
+        return Colors.purple;
+      case 'ON_GOING':
+        return Colors.blue;
+      case 'CLOSED':
+        return Colors.grey;
+      case 'COMPLETE':
+      case 'COMPLETED':
+        return Colors.green;
+      case 'PAUSED':
+        return Colors.amber;
       default:
         return Colors.grey;
     }
@@ -72,12 +57,101 @@ class ProjectDataFormatter {
 
   static String translateStatus(String status) {
     switch (status.toUpperCase()) {
-      case 'PENDING': return 'Đang chờ';
-      case 'PLANNING': return 'Đang lập kế hoạch';
-      case 'ACTIVE': return 'Hoạt động';
-      case 'COMPLETED': return 'Hoàn thành';
-      case 'CANCELLED': return 'Đã hủy';
-      default: return status;
+      case 'PENDING':
+        return 'Đang chờ';
+      case 'UPDATE_REQUIRED':
+        return 'Yêu cầu cập nhật';
+      case 'REJECTED':
+        return 'Đã từ chối';
+      case 'PLANNING':
+        return 'Đang lập kế hoạch';
+      case 'ON_GOING':
+        return 'Đang thực hiện';
+      case 'CLOSED':
+        return 'Đã đóng';
+      case 'COMPLETE':
+      case 'COMPLETED':
+        return 'Đã hoàn thành';
+      case 'PAUSED':
+        return 'Tạm dừng';
+      default:
+        return status;
+    }
+  }
+
+  // --- MILESTONE STATUS ---
+
+  static Color getMilestoneStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return Colors.orange; // Đang chờ
+      case 'PENDING_START':
+        return Colors.amber.shade700; // Chờ bắt đầu - Màu vàng đậm
+      case 'UPDATE_REQUIRED':
+        return Colors.red; // Yêu cầu cập nhật - Màu đỏ cảnh báo
+      case 'ON_GOING':
+        return Colors.blue; // Đang thực hiện - Màu xanh dương
+      case 'COMPLETED':
+        return Colors.green; // Đã hoàn thành - Màu xanh lá
+      case 'PAID':
+        return Colors.purple; // Đã thanh toán - Màu tím
+      default:
+        return Colors.grey;
+    }
+  }
+
+  static String translateMilestoneStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return 'Đang chờ';
+      case 'PENDING_START':
+        return 'Chờ bắt đầu';
+      case 'UPDATE_REQUIRED':
+        return 'Yêu cầu cập nhật';
+      case 'ON_GOING':
+        return 'Đang thực hiện';
+      case 'COMPLETED':
+        return 'Đã hoàn thành';
+      case 'PAID':
+        return 'Đã thanh toán';
+      default:
+        return status;
+    }
+  }
+
+  // --- REPORT STATUS ---
+
+  static Color getReportStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'SUBMITTED':
+        return Colors.orange; // Đã nộp (Chờ review)
+      case 'UNDER_REVIEW':
+        return Colors.amber.shade700; // Đang xem xét
+      case 'APPROVED':
+        return Colors.green; // Đã duyệt
+      case 'REJECTED':
+        return Colors.red; // Từ chối / Yêu cầu sửa lại
+      case 'FINAL':
+        return Colors.blue; // Đã chốt / Đã gửi khách hàng
+      default:
+        return Colors.grey;
+    }
+  }
+
+  static String translateReportStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'SUBMITTED':
+        return 'Đã nộp';
+      case 'UNDER_REVIEW':
+        return 'Đang xem xét';
+      case 'APPROVED':
+        return 'Đã duyệt';
+      case 'REJECTED':
+        return 'Từ chối';
+      case 'FINAL':
+        return 'Đã gửi khách hàng';
+      default:
+        return status;
     }
   }
 }

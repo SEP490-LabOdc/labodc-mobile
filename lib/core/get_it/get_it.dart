@@ -17,6 +17,7 @@ import '../../features/milestone/data/data_sources/milestone_remote_data_source.
 import '../../features/milestone/data/repositories/project_repository_impl.dart';
 import '../../features/milestone/domain/repositories/milestone_repository.dart';
 import '../../features/milestone/presentation/cubit/milestone_detail_cubit.dart';
+import '../../features/milestone/presentation/cubit/milestone_documents_cubit.dart';
 import '../../features/project_application/data/data_sources/project_application_remote_data_source.dart';
 import '../../features/project_application/data/repositories/project_application_repository_impl.dart';
 import '../../features/project_application/domain/repositories/project_application_repository.dart';
@@ -26,6 +27,7 @@ import '../../features/project_application/domain/use_cases/upload_cv_use_case.d
 import '../../features/project_application/presentation/cubit/project_application_cubit.dart';
 
 // Report Feature
+import '../../features/project_application/presentation/cubit/project_documents_cubit.dart';
 import '../../features/report/data/data_sources/report_remote_data_source.dart';
 import '../../features/report/data/repositories_imp/report_repository_impl.dart';
 import '../../features/report/domain/repositories/report_repository.dart';
@@ -243,6 +245,9 @@ Future<void> init() async {
       uploadCvUseCase: getIt(),
     ),
   );
+  getIt.registerFactoryParam<ProjectDocumentsCubit, String, void>(
+        (projectId, _) => ProjectDocumentsCubit(getIt<ProjectApplicationRepository>()),
+  );
 
   // ------------------------
   // User Profile
@@ -323,13 +328,9 @@ Future<void> init() async {
         () => MilestoneDetailCubit(getIt<MilestoneRepository>()),
   );
 
-
-
-
-
-
-
-
+  getIt.registerFactoryParam<MilestoneDocumentsCubit, String, void>(
+        (milestoneId, _) => MilestoneDocumentsCubit(getIt<MilestoneRepository>()),
+  );
 
 
   // ------------------------

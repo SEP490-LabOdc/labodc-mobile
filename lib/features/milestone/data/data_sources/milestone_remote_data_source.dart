@@ -7,11 +7,14 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/config/networks/config.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../models/milestone_detail_model.dart';
+import '../models/milestone_document_model.dart';
 import '../models/project_milestone_model.dart';
 
 abstract class MilestoneRemoteDataSource {
   Future<List<ProjectMilestoneModel>> getMilestones(String projectId);
   Future<MilestoneDetailModel> getMilestoneDetail(String milestoneId);
+  Future<List<MilestoneDocumentModel>> getMilestoneDocuments(String milestoneId);
+
 }
 
 
@@ -106,6 +109,36 @@ class MilestoneRemoteDataSourceImpl implements MilestoneRemoteDataSource {
       throw ServerException(
         'Lỗi không xác định khi lấy chi tiết milestone: $e',
       );
+    }
+  }
+
+  @override
+  Future<List<MilestoneDocumentModel>> getMilestoneDocuments(String milestoneId) async {
+    final uri = ApiConfig.endpoint('/api/v1/project-milestones/$milestoneId/documents');
+
+    try {
+      final response = await client.get(uri, headers: await _getHeaders());
+      final body = utf8.decode(response.bodyBytes);
+      final decoded = json.decode(body) as Map<String, dynamic>;
+
+      if (kDebugMode) {
+        debugPrint('[MilestoneDocs] GET $uri -> Status: ${response.statusCode}');
+      }
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final List<dynamic> list = decoded['data'] ?? [];
+        return list.map((e) => MilestoneDocumentModel.fromJson(e)).toList();
+      }
+
+      throw ServerException(
+        decoded['message']?.toString() ?? 'Không thể tải tài liệu.',
+        statusCode: response.statusCode,
+      );
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException('Lỗi tải tài liệu: $e');
     }
   }
 

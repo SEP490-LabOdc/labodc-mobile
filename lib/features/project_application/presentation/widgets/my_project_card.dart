@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/widgets/reusable_card.dart';
-import '../../../../shared/widgets/service_chip.dart';
-import '../../../../shared/widgets/expandable_text.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/router/route_constants.dart';
+import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 import '../../../project_application/data/models/my_project_model.dart';
 
 class MyProjectCard extends StatelessWidget {
@@ -44,156 +42,218 @@ class MyProjectCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime? d) {
-    if (d == null) return 'N/A';
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
-
-  String _formatBudget() {
-    if (budget == null) return 'N/A';
-    return '\$${budget!.toStringAsFixed(2)}';
-  }
-
-  Color _statusColor(BuildContext context) {
-    switch (status) {
-      case 'PLANNING':
-        return Colors.blue;
-      case 'IN_PROGRESS':
-        return Colors.orange;
-      case 'COMPLETED':
-        return Colors.green;
-      default:
-        return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  String _statusLabel() {
-    switch (status) {
-      case 'PLANNING':
-        return 'Lên kế hoạch';
-      case 'IN_PROGRESS':
-        return 'Đang thực hiện';
-      case 'COMPLETED':
-        return 'Hoàn thành';
-      default:
-        return status;
-    }
-  }
-
-  String _colorHexFromString(String input) {
-    final hash = input.hashCode;
-    final colorInt = 0xFFFFFF & hash;
-    return '#${colorInt.toRadixString(16).padLeft(6, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final statusColor = _statusColor(context);
-    final start = _formatDate(startDate);
-    final end = _formatDate(endDate);
-    final company = companyName ?? 'Không rõ công ty';
+    // Sử dụng Formatter
+    final statusColor = ProjectDataFormatter.getStatusColor(status);
+    final statusText = ProjectDataFormatter.translateStatus(status);
+    final formattedBudget = ProjectDataFormatter.formatCurrency(context, budget);
+    final dateRange = _formatDateRange();
 
-    return ReusableCard(
-      onTap: () {
-        AppRouter.pushNamed(
-          Routes.myProjectDetailName,
-          pathParameters: {'id': projectId},
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // title + status pill
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  projectName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _statusLabel(),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-
-          const SizedBox(height: 6),
-
-          // company
-          Text(
-            company,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // description
-          ExpandableText(
-            text: description,
-            maxLines: 3,
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-
-          // skills
-          if (skills.isNotEmpty) ...[
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: skills.take(8).map((s) {
-                final String name = s.name as String;
-                final hex = _colorHexFromString(name);
-                return ServiceChip(name: name, color: hex, small: true);
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-          ],
-
-          // date
-          Text(
-            'Từ $start đến $end',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.8),
-            ),
-          ),
-
-          if (budget != null) ...[
-            const SizedBox(height: 6),
-            Row(
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            AppRouter.pushNamed(
+              Routes.myProjectDetailName,
+              pathParameters: {'id': projectId},
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.account_balance_wallet,
-                    size: 16, color: theme.colorScheme.primary),
-                const SizedBox(width: 6),
-                Text(
-                  'Ngân sách: ${_formatBudget()}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
+                // --- HEADER: TITLE & STATUS ---
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 🔥 HERO ANIMATION cho Title
+                          Hero(
+                            tag: 'project_title_$projectId',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Text(
+                                projectName,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          if (companyName != null) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(Icons.business, size: 14, color: Colors.grey.shade500),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    companyName!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ]
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Status Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: statusColor.withOpacity(0.2)),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(height: 1, thickness: 0.5),
+                ),
+
+                // --- BODY: DESCRIPTION ---
+                if (description.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+
+                // --- FOOTER: METRICS (Budget, Date) ---
+                Row(
+                  children: [
+                    // Budget
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.monetization_on_outlined, size: 16, color: Colors.green.shade700),
+                          const SizedBox(width: 6),
+                          Text(
+                            formattedBudget,
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    // Date
+                    if (dateRange != null)
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey.shade500),
+                          const SizedBox(width: 4),
+                          Text(
+                            dateRange,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+
+                // --- SKILLS ---
+                if (skills.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: skills.take(4).map((s) {
+                      final name = s is Map ? s['name'] : (s.name ?? '');
+                      if (name == null) return const SizedBox.shrink();
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Text(
+                          name,
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
+  }
+
+  String? _formatDateRange() {
+    if (startDate == null) return null;
+    final start = ProjectDataFormatter.formatDate(startDate!);
+    if (endDate == null) return start;
+    final end = ProjectDataFormatter.formatDate(endDate!);
+    return "$start - $end";
   }
 }

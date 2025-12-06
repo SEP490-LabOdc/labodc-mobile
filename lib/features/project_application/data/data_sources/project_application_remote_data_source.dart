@@ -12,6 +12,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../models/project_applicant_model.dart';
 import '../models/project_application_status_model.dart';
+import '../models/project_document_model.dart';
 import '../models/submitted_cv_model.dart';
 import '../models/uploaded_file_model.dart';
 
@@ -34,6 +35,9 @@ abstract class ProjectApplicationRemoteDataSource {
       String projectApplicationId,
       String reviewNotes,
       );
+
+  Future<List<ProjectDocumentModel>> getProjectDocuments(String projectId);
+
 
 }
 
@@ -452,6 +456,37 @@ class ProjectApplicationRemoteDataSourceImpl
       throw ServerException(
         'Lỗi không xác định khi từ chối ứng viên: $e',
       );
+    }
+  }
+
+  @override
+  Future<List<ProjectDocumentModel>> getProjectDocuments(String projectId) async {
+    final uri = ApiConfig.endpoint('api/v1/projects/$projectId/documents');
+    final token = await authRepository.getSavedToken();
+
+    final headers = {
+      ...ApiConfig.defaultHeaders,
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await client.get(uri, headers: headers);
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final list = decoded['data'] as List<dynamic>? ?? [];
+        return list.map((e) => ProjectDocumentModel.fromJson(e)).toList();
+      }
+
+      throw ServerException(
+        decoded['message'] ?? 'Không thể lấy danh sách tài liệu',
+        statusCode: response.statusCode,
+      );
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw ServerException('Lỗi lấy tài liệu: $e');
     }
   }
 }

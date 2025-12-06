@@ -9,7 +9,6 @@ import '../../../hiring_projects/presentation/utils/project_data_formatter.dart'
 import '../../data/models/project_milestone_model.dart';
 import '../cubit/milestone_cubit.dart';
 import '../cubit/milestone_state.dart';
-import '../../../../shared/widgets/reusable_card.dart';
 
 class ListMilestoneOfProject extends StatelessWidget {
   final String projectId;
@@ -23,33 +22,84 @@ class ListMilestoneOfProject extends StatelessWidget {
       child: BlocBuilder<MilestoneCubit, MilestoneState>(
         builder: (context, state) {
           if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
 
           if (state.errorMessage != null) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  state.errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontWeight: FontWeight.w600,
-                  ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: () => context
+                          .read<MilestoneCubit>()
+                          .loadMilestones(projectId),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Thử lại"),
+                    ),
+                  ],
                 ),
               ),
             );
           }
 
           if (state.milestones.isEmpty) {
-            return const Center(child: Text("Chưa có cột mốc nào."));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.flag_outlined,
+                      size: 40,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Chưa có cột mốc nào",
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 100), // Bottom padding for FAB
             itemCount: state.milestones.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
             itemBuilder: (_, index) {
               final ms = state.milestones[index];
               return _MilestoneCard(m: ms);
@@ -68,98 +118,151 @@ class _MilestoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // Sử dụng formatter mới cho Milestone Status
+    final statusColor = ProjectDataFormatter.getMilestoneStatusColor(m.status);
+    final statusText = ProjectDataFormatter.translateMilestoneStatus(m.status);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        AppRouter.pushNamed(Routes.milestoneDetailName, pathParameters: {'id': m.id}
-        );
-      },
-      child: ReusableCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== Title + Status =====
-            Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            AppRouter.pushNamed(
+              Routes.milestoneDetailName,
+              pathParameters: {'id': m.id},
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    m.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                // === HEADER: TITLE & STATUS ===
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        m.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: statusColor.withOpacity(0.2), width: 1),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // === DESCRIPTION ===
+                if (m.description.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      m.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        height: 1.5,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: ProjectDataFormatter.getStatusColor(m.status)
-                        .withOpacity(0.15),
-                  ),
-                  child: Text(
-                    ProjectDataFormatter.translateStatus(m.status),
-                    style: TextStyle(
-                      color: ProjectDataFormatter.getStatusColor(m.status),
-                      fontWeight: FontWeight.w600,
+
+                const Divider(height: 1, thickness: 0.5),
+                const SizedBox(height: 12),
+
+                // === FOOTER: INFO ROW ===
+                Row(
+                  children: [
+                    // Budget
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.monetization_on_outlined,
+                            size: 16,
+                            color: Colors.green.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            ProjectDataFormatter.formatCurrency(context, m.budget),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    const Spacer(),
+
+                    // Date Range
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      size: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${ProjectDataFormatter.formatDate(m.startDate)} - ${ProjectDataFormatter.formatDate(m.endDate)}",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-
-            const SizedBox(height: 8),
-
-            // ===== Date range =====
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_month,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "${ProjectDataFormatter.formatDate(m.startDate)} → "
-                      "${ProjectDataFormatter.formatDate(m.endDate)}",
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // ===== Description =====
-            Text(
-              m.description,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ===== Budget =====
-            Row(
-              children: [
-                Icon(
-                  Icons.monetization_on_outlined,
-                  size: 18,
-                  color: Colors.green.shade700,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  ProjectDataFormatter.formatCurrency(context, m.budget),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.green.shade800,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
