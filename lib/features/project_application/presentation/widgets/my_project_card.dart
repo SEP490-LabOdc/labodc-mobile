@@ -222,7 +222,7 @@ class MyProjectCard extends StatelessWidget {
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: skills.take(4).map((s) {
+                    children: skills.map((s) {
                       final name = s is Map ? s['name'] : (s.name ?? '');
                       if (name == null) return const SizedBox.shrink();
 

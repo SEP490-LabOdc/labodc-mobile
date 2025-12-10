@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:labodc_mobile/features/project_fund/presentation/pages/project_fund_page.dart';
 import 'package:labodc_mobile/features/talent/presentation/pages/talent_report_page.dart';
 import 'package:labodc_mobile/features/user_profile/presentation/pages/profile_page.dart';
 // import 'package:labodc_mobile/features/talent/presentation/pages/tasks_page.dart'; // Uncomment nếu dùng
@@ -26,7 +27,7 @@ class _TalentMainPageState extends State<TalentMainPage> {
     DashboardPage(),
     ExplorePage(),
     // TasksPage(),
-    ReportPage(),
+    ProjectFundPage(),
     ProfilePage(),
   ];
 
@@ -91,7 +92,7 @@ class _TalentMainPageState extends State<TalentMainPage> {
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
             BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Khám phá'),
             // BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Nhiệm vụ'),
-            BottomNavigationBarItem(icon: Icon(Icons.report), label: 'Báo cáo'),
+            BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Quỹ'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
           ],
         ),

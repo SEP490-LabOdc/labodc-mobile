@@ -15,6 +15,8 @@ class Routes {
 
   static const String milestoneDetail = '/milestoneDetail/:id';
 
+  static const String projectFund = '/project-fund';
+
   static const String setting = '/setting';
   static const String labAdmin = '/lab-admin';
   static const String uploadCv = '/upload-cv';
@@ -42,6 +44,8 @@ class Routes {
   static const String notificationsName = 'notifications';
 
   static const String milestoneDetailName = 'milestone-detail';
+
+  static const String projectFundName = 'project-fund';
 
 
   // Public routes (không cần authentication)

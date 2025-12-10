@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; // Giữ lại nếu cần dùng cho các Bloc khác
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
+import 'package:labodc_mobile/features/project_fund/presentation/pages/project_fund_page.dart';
 
 // Pages imports
 import '../../features/admin/presentation/pages/lab_admin_main_page.dart';
@@ -12,6 +13,7 @@ import '../../features/company/presentation/pages/company_main_page.dart';
 import '../../features/mentor/presentation/pages/mentor_main_page.dart';
 import '../../features/milestone/presentation/pages/milestone_detail_page.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
+import '../../features/project_fund/presentation/cubit/project_fund_cubit.dart';
 import '../../features/talent/presentation/pages/talent_main_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
 import '../../common/presentation/pages/setting_page.dart';
@@ -24,6 +26,7 @@ import '../../features/auth/presentation/provider/auth_provider.dart';
 // Constants
 import '../../features/user_profile/data/models/user_profile_model.dart';
 import '../../features/user_profile/presentation/pages/edit_profile_page.dart';
+import '../get_it/get_it.dart';
 import 'route_constants.dart';
 
 final sl = GetIt.instance;
@@ -167,6 +170,20 @@ class AppRouter {
             return const NotificationPage();
           },
         ),
+
+        GoRoute(
+          path: Routes.projectFund,
+          name: Routes.projectFundName,
+          builder: (context, state) {
+            final user = authProvider.currentUser;
+            if (user == null) return const LoginPage();
+
+            return BlocProvider<ProjectFundCubit>(
+              create: (_) => getIt<ProjectFundCubit>(),
+              child: const ProjectFundPage(),
+            );
+          },
+        ),
       ],
     );
   }
@@ -229,7 +246,7 @@ class AppRouter {
         return role == 'mentor';
       case Routes.company:
         return role == 'company';
-      case Routes.talent:
+      case Routes.user:
         return role == 'user' || role == null || role.isEmpty;
       default:
         return true;
