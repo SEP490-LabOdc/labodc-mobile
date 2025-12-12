@@ -26,6 +26,7 @@ import '../../features/auth/presentation/provider/auth_provider.dart';
 // Constants
 import '../../features/user_profile/data/models/user_profile_model.dart';
 import '../../features/user_profile/presentation/pages/edit_profile_page.dart';
+import '../../wallet/presentation/pages/transaction_history_page.dart';
 import '../get_it/get_it.dart';
 import 'route_constants.dart';
 
@@ -182,6 +183,13 @@ class AppRouter {
               create: (_) => getIt<ProjectFundCubit>(),
               child: const ProjectFundPage(),
             );
+          },
+        ),
+        GoRoute(
+          path: Routes.transactionHistory,
+          name: Routes.transactionHistoryName,
+          builder: (context, state) {
+            return TransactionHistoryPage();
           },
         ),
       ],

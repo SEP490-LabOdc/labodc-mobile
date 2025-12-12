@@ -8,7 +8,7 @@ class ProjectFundState extends Equatable {
   final List<ProjectMilestoneModel> milestones;
 
   final double holdingAmount;
-  final double distributedAmount;  
+  final double distributedAmount;
 
   final bool isLoadingProjects;
   final bool isLoadingMilestones;

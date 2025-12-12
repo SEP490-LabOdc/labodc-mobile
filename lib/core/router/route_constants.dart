@@ -23,6 +23,8 @@ class Routes {
   static const String editProfile = '/edit-profile';
   static const String notifications = '/notifications';
 
+  static const String transactionHistory = '/transaction-history';
+
 
   // Route names
   static const String splashName = 'splash';
@@ -46,6 +48,10 @@ class Routes {
   static const String milestoneDetailName = 'milestone-detail';
 
   static const String projectFundName = 'project-fund';
+
+  static const String transactionHistoryName = 'transaction-history';
+
+
 
 
   // Public routes (không cần authentication)
