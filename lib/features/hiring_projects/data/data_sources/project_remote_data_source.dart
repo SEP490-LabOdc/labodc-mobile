@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../core/config/networks/config.dart';
 import '../../../../core/error/exceptions.dart';
+import '../../../../shared/models/search_request_model.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../project_application/data/models/project_application_status_model.dart';
 import '../models/project_detail_model.dart';
@@ -24,6 +25,8 @@ abstract class ProjectRemoteDataSource {
   });
 
   Future<ProjectDetailModel> getProjectDetail(String projectId);
+
+  Future<PaginatedProjectModel> searchProjects(SearchRequest request);
 }
 
 
@@ -186,5 +189,53 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
     }
   }
 
+  @override
+  Future<PaginatedProjectModel> searchProjects(SearchRequest request) async {
+    final uri = ApiConfig.endpoint('api/v1/projects/search');
 
+    final token = await authRepository.getSavedToken();
+
+    debugPrint(" [SearchProjects] URI: $uri");
+    debugPrint(" [SearchProjects] Request: ${request.toJson()}");
+
+    final headers = {
+      ...ApiConfig.defaultHeaders,
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await client.post(
+        uri,
+        headers: headers,
+        body: json.encode(request.toJson()),
+      );
+
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      debugPrint("📩 [SearchProjects] Status: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        if (decoded['success'] == true) {
+          debugPrint("📦 [SearchProjects] Response Data: ${decoded['data']}");
+          debugPrint("📊 [SearchProjects] Projects count: ${decoded['data']['projects']?.length ?? 0}");
+          return PaginatedProjectModel.fromJson(decoded);
+        }
+        throw ServerException(
+          decoded['message'] ?? 'Unknown error',
+          statusCode: 422,
+        );
+      }
+
+      throw ServerException(
+        decoded['message'] ?? 'Server error',
+        statusCode: response.statusCode,
+      );
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      debugPrint("💥 [SearchProjects] Unexpected Error: $e");
+      throw ServerException('Unexpected error: $e');
+    }
+  }
 }

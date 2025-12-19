@@ -1,4 +1,5 @@
 import '../../domain/entities/project_entity.dart';
+import '../../domain/entities/paginated_project_entity.dart';
 
 class SkillModel extends SkillEntity {
   SkillModel({
@@ -97,7 +98,7 @@ class ProjectModel extends ProjectEntity {
 }
 
 class PaginatedProjectModel extends PaginatedProjectEntity {
-  PaginatedProjectModel({
+  const PaginatedProjectModel({
     required super.projects,
     required super.totalElements,
     required super.totalPages,

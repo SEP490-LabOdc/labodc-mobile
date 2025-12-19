@@ -31,19 +31,3 @@ class ProjectEntity {
     required this.status,
   });
 }
-//Phân trang
-class PaginatedProjectEntity {
-  final List<ProjectEntity> projects;
-  final int totalElements;
-  final int totalPages;
-  final int currentPage;
-  final bool hasNext;
-
-  PaginatedProjectEntity({
-    required this.projects,
-    required this.totalElements,
-    required this.totalPages,
-    required this.currentPage,
-    required this.hasNext,
-  });
-}

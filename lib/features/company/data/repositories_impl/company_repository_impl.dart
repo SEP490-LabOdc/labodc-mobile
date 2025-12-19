@@ -1,29 +1,23 @@
+// lib/features/company/data/repositories_impl/company_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../shared/models/search_request_model.dart';
-import '../../domain/entities/project_entity.dart';
-import '../../domain/entities/paginated_project_entity.dart';
-import '../../domain/repositories/project_repository.dart';
-import '../data_sources/project_remote_data_source.dart';
-import '../models/project_detail_model.dart';
-import '../models/project_model.dart';
+import '../../domain/entities/paginated_company_entity.dart';
+import '../../domain/repositories/company_repository.dart';
+import '../data_sources/company_remote_data_source.dart';
+import '../models/company_model.dart';
 
-class ProjectRepositoryImpl implements ProjectRepository {
-  final ProjectRemoteDataSource remoteDataSource;
+class CompanyRepositoryImpl implements CompanyRepository {
+  final CompanyRemoteDataSource remoteDataSource;
 
-  ProjectRepositoryImpl(this.remoteDataSource);
+  CompanyRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<Failure, PaginatedProjectEntity>> getHiringProjects({
-    required int page,
-    required int pageSize,
-  }) async {
+  Future<Either<Failure, List<CompanyModel>>> getActiveCompanies() async {
     try {
-      final remoteData = await remoteDataSource.getHiringProjects(
-        page: page,
-        pageSize: pageSize,
-      );
+      final remoteData = await remoteDataSource.getActiveCompanies();
       return Right(remoteData);
     } on ServerException catch (e) {
       final int statusCode = e.statusCode ?? 500;
@@ -45,35 +39,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, ProjectDetailModel>> getProjectDetail(String projectId) async {
+  Future<Either<Failure, CompanyModel>> getCompanyDetail(String companyId) async {
     try {
-      final remoteData = await remoteDataSource.getProjectDetail(projectId);
-      // Thành công trả về Right chứa data
-      return Right(remoteData);
-    } on ServerException catch (e) {
-      // Xử lý các lỗi server trả về
-      return Left(ServerFailure(e.message, e.statusCode ?? 500));
-    } on NetworkException {
-      // Lỗi mất mạng
-      return const Left(NetworkFailure());
-    } catch (e) {
-      // Lỗi không xác định
-      return Left(ServerFailure(e.toString(), 500));
-    }
-  }
-
-  @override
-  Future<Either<Failure, PaginatedProjectModel>> getRelatedProjects({
-    required String projectId,
-    required int page,
-    required int pageSize,
-  }) async {
-    try {
-      final remoteData = await remoteDataSource.getRelatedProjects(
-        projectId,
-        page: page,
-        pageSize: pageSize,
-      );
+      final remoteData = await remoteDataSource.getCompanyDetail(companyId);
       return Right(remoteData);
     } on ServerException catch (e) {
       final int statusCode = e.statusCode ?? 500;
@@ -95,9 +63,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, PaginatedProjectEntity>> searchProjects(SearchRequest request) async {
+  Future<Either<Failure, PaginatedCompanyEntity>> searchCompanies(SearchRequest request) async {
     try {
-      final remoteData = await remoteDataSource.searchProjects(request);
+      final remoteData = await remoteDataSource.searchCompanies(request);
       return Right(remoteData);
     } on ServerException catch (e) {
       final int statusCode = e.statusCode ?? 500;

@@ -1,15 +1,18 @@
-// lib/core/get_it/get_it.dart
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Hiring Projects
 import 'package:labodc_mobile/features/hiring_projects/presentation/cubit/related_projects_preview_cubit.dart';
+import '../../features/company/domain/use_cases/get_company_detail_use_case.dart';
+import '../../features/company/presentation/cubit/company_detail_cubit.dart';
 import '../../features/hiring_projects/data/data_sources/project_remote_data_source.dart';
 import '../../features/hiring_projects/data/repositories_impl/project_repository_impl.dart';
 import '../../features/hiring_projects/domain/repositories/project_repository.dart';
 import '../../features/hiring_projects/domain/use_cases/get_hiring_projects.dart';
+import '../../features/hiring_projects/domain/use_cases/search_projects.dart';
 import '../../features/hiring_projects/presentation/cubit/hiring_projects_cubit.dart';
+import '../../features/hiring_projects/presentation/cubit/search_projects_cubit.dart';
 
 // Project Application
 import '../../features/milestone/data/data_sources/milestone_remote_data_source.dart';
@@ -81,6 +84,18 @@ import '../theme/domain/usecase/save_theme_use_case.dart';
 
 // Websocket Service
 import '../services/realtime/stomp_notification_service.dart';
+
+// ==============================
+// 🟢 COMPANY FEATURE IMPORTS (NEW)
+// ==============================
+import '../../features/company/data/data_sources/company_remote_data_source.dart';
+import '../../features/company/data/repositories_impl/company_repository_impl.dart';
+import '../../features/company/domain/repositories/company_repository.dart';
+import '../../features/company/domain/use_cases/get_active_companies_use_case.dart';
+import '../../features/company/presentation/cubit/company_cubit.dart';
+import '../../features/company/domain/use_cases/search_companies.dart';
+import '../../features/company/presentation/cubit/search_companies_cubit.dart';
+
 
 final getIt = GetIt.instance;
 
@@ -218,8 +233,16 @@ Future<void> init() async {
         () => GetHiringProjects(getIt<ProjectRepository>()),
   );
 
+  getIt.registerLazySingleton<SearchProjects>(
+        () => SearchProjects(getIt<ProjectRepository>()),
+  );
+
   getIt.registerFactory<HiringProjectsCubit>(
         () => HiringProjectsCubit(getIt<GetHiringProjects>()),
+  );
+
+  getIt.registerFactory<SearchProjectsCubit>(
+        () => SearchProjectsCubit(getIt<SearchProjects>()),
   );
 
   getIt.registerFactory<RelatedProjectsPreviewCubit>(
@@ -351,5 +374,43 @@ Future<void> init() async {
       projectApplicationRepository: getIt<ProjectApplicationRepository>(),
       milestoneRepository: getIt<MilestoneRepository>(),
     ),
+  );
+
+  // =========================
+  //  COMPANY FEATURE
+  // =========================
+  getIt.registerLazySingleton<CompanyRemoteDataSource>(
+        () => CompanyRemoteDataSourceImpl(
+      getIt<http.Client>(),
+      getIt<AuthRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<CompanyRepository>(
+        () => CompanyRepositoryImpl(getIt<CompanyRemoteDataSource>()),
+  );
+
+  getIt.registerLazySingleton<GetActiveCompaniesUseCase>(
+        () => GetActiveCompaniesUseCase(getIt<CompanyRepository>()),
+  );
+
+  getIt.registerLazySingleton<SearchCompanies>(
+        () => SearchCompanies(getIt<CompanyRepository>()),
+  );
+
+  getIt.registerFactory<CompanyCubit>(
+        () => CompanyCubit(getActiveCompaniesUseCase: getIt<GetActiveCompaniesUseCase>()),
+  );
+
+  getIt.registerFactory<SearchCompaniesCubit>(
+        () => SearchCompaniesCubit(getIt<SearchCompanies>()),
+  );
+
+  getIt.registerLazySingleton<GetCompanyDetailUseCase>(
+        () => GetCompanyDetailUseCase(getIt<CompanyRepository>()),
+  );
+
+  getIt.registerFactory<CompanyDetailCubit>(
+        () => CompanyDetailCubit(getCompanyDetailUseCase: getIt<GetCompanyDetailUseCase>()),
   );
 }
