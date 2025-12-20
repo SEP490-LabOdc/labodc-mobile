@@ -19,6 +19,7 @@ import '../../features/hiring_projects/presentation/cubit/search_projects_cubit.
 import '../../features/milestone/data/data_sources/milestone_remote_data_source.dart';
 import '../../features/milestone/data/repositories/project_repository_impl.dart';
 import '../../features/milestone/domain/repositories/milestone_repository.dart';
+import '../../features/milestone/presentation/cubit/disbursement_cubit.dart';
 import '../../features/milestone/presentation/cubit/milestone_cubit.dart';
 import '../../features/milestone/presentation/cubit/milestone_detail_cubit.dart';
 import '../../features/milestone/presentation/cubit/milestone_documents_cubit.dart';
@@ -372,6 +373,7 @@ Future<void> init() async {
   getIt.registerFactoryParam<MilestoneDocumentsCubit, String, void>(
         (milestoneId, _) => MilestoneDocumentsCubit(getIt<MilestoneRepository>()),
   );
+  getIt.registerFactory(() => DisbursementCubit(repository: getIt<MilestoneRepository>()));
 
 
   // ------------------------

@@ -7,6 +7,7 @@ import '../../../../core/error/failures.dart';
 import '../../domain/repositories/milestone_repository.dart';
 import '../data_sources/milestone_remote_data_source.dart';
 import '../models/milestone_detail_model.dart';
+import '../models/milestone_disbursement_model.dart';
 import '../models/milestone_document_model.dart';
 import '../models/project_milestone_model.dart';
 
@@ -58,4 +59,17 @@ class MilestoneRepositoryImpl implements MilestoneRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, MilestoneDisbursementModel>> getMilestoneDisbursement(String milestoneId) async {
+    try {
+      final result = await remoteDataSource.getMilestoneDisbursement(milestoneId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
 }

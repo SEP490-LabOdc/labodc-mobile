@@ -9,6 +9,7 @@ import '../../../../shared/widgets/expandable_text.dart';
 import '../../../report/presentation/widgets/milestone_report_list.dart';
 import '../cubit/milestone_detail_cubit.dart';
 import '../cubit/milestone_detail_state.dart';
+import '../widgets/milestone_disbursement_tab.dart';
 import '../widgets/milestone_documents_tab.dart';
 
 class MilestoneDetailPage extends StatelessWidget {
@@ -84,22 +85,13 @@ class MilestoneDetailPage extends StatelessWidget {
                 ),
               ),
               body: Container(
-                color: Colors.grey.shade50, // Nền xám nhẹ làm nổi bật các Card trắng
+                color: Colors.grey.shade50,
                 child: TabBarView(
                   children: [
                     _buildOverview(context, m),
                     MilestoneReportsList(milestoneId: milestoneId),
                     MilestoneDocumentsTab(milestoneId: milestoneId),
-                    const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.pie_chart_outline, size: 48, color: Colors.grey),
-                          SizedBox(height: 12),
-                          Text("Chưa có phân bổ", style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                    ),
+                    MilestoneDisbursementTab(milestoneId: milestoneId),
                   ],
                 ),
               ),
