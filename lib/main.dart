@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
@@ -107,15 +108,28 @@ void _bootstrapFcmNonBlocking() {
   });
 }
 
-class LabOdcApp extends StatelessWidget {
+class LabOdcApp extends StatefulWidget {
   const LabOdcApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Lấy AuthProvider để truyền vào Router (cho logic Redirect)
-    final authProvider = Provider.of<AuthProvider>(context);
-    final router = AppRouter.createRouter(authProvider);
+  State<LabOdcApp> createState() => _LabOdcAppState();
+}
 
+class _LabOdcAppState extends State<LabOdcApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Khởi tạo router MỘT LẦN DUY NHẤT khi app bắt đầu
+    // Sử dụng context.read để lấy AuthProvider mà không "lắng nghe" sự thay đổi sau này
+    final authProvider = context.read<AuthProvider>();
+    _router = AppRouter.createRouter(authProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Chỉ lắng nghe Theme để đổi màu giao diện, không khởi tạo lại Router
     return BlocBuilder<ThemeBloc, ThemeState>(
       builder: (context, themeState) {
         final isDark = themeState.themeEntity?.themeType == ThemeType.dark;
@@ -123,12 +137,9 @@ class LabOdcApp extends StatelessWidget {
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
           title: 'LabODC',
-          // Cấu hình Theme
           theme: AppTheme.getTheme(false),
           darkTheme: AppTheme.getTheme(true),
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-
-          // Cấu hình Localization
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -136,8 +147,7 @@ class LabOdcApp extends StatelessWidget {
           ],
           supportedLocales: const [Locale('en'), Locale('vi')],
 
-          // Cấu hình Router (GoRouter)
-          routerConfig: router,
+          routerConfig: _router,
         );
       },
     );

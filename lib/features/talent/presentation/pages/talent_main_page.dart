@@ -94,7 +94,7 @@ class _TalentMainPageState extends State<TalentMainPage> {
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
             BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Khám phá'),
             // BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Nhiệm vụ'),
-            BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Quỹ'),
+            BottomNavigationBarItem(icon: Icon(Icons.wallet_membership), label: 'Quỹ'),
             BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Ví'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'),
           ],

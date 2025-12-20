@@ -75,6 +75,13 @@ import '../../features/notification/domain/use_cases/register_device_token_use_c
 import '../../features/notification/websocket/cubit/websocket_notification_cubit.dart';
 
 // Theme
+import '../../wallet/data/data_sources/transaction_remote_data_source.dart';
+import '../../wallet/data/repositories/transaction_repository.dart';
+import '../../wallet/data/repositories/wallet_repository.dart';
+import '../../wallet/data/repositories_impl/transaction_repository_impl.dart';
+import '../../wallet/data/repositories_impl/wallet_repository_impl.dart';
+import '../../wallet/presentation/bloc/transaction_history_cubit.dart';
+import '../../wallet/presentation/bloc/wallet_cubit.dart';
 import '../theme/bloc/theme_bloc.dart';
 import '../theme/data/datasource/theme_local_datasource.dart';
 import '../theme/data/repository/theme_repository_impl.dart';
@@ -412,5 +419,39 @@ Future<void> init() async {
 
   getIt.registerFactory<CompanyDetailCubit>(
         () => CompanyDetailCubit(getCompanyDetailUseCase: getIt<GetCompanyDetailUseCase>()),
+  );
+
+// =========================
+//  TRANSACTION & WALLET FEATURE
+// =========================
+
+// 1. Data Source (Dùng chung một Data Source cho cả ví và giao dịch)
+  getIt.registerLazySingleton<TransactionRemoteDataSource>(
+        () => TransactionRemoteDataSource(),
+  );
+
+// 2. Repositories
+// Đăng ký TransactionRepository
+  getIt.registerLazySingleton<TransactionRepository>(
+        () => TransactionRepositoryImpl(
+      remoteDataSource: getIt<TransactionRemoteDataSource>(),
+      tokenStorage: getIt<AuthTokenStorage>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<WalletRepository>(
+        () => WalletRepositoryImpl(
+      remoteDataSource: getIt<TransactionRemoteDataSource>(),
+      tokenStorage: getIt<AuthTokenStorage>(),
+    ),
+  );
+
+// 3. Cubits
+  getIt.registerFactory<TransactionHistoryCubit>(
+        () => TransactionHistoryCubit(getIt<TransactionRepository>()),
+  );
+
+  getIt.registerFactory<WalletCubit>(
+        () => WalletCubit(getIt<WalletRepository>()), // Bây giờ nó sẽ tìm thấy WalletRepository
   );
 }

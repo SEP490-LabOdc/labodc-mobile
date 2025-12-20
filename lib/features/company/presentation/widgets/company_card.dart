@@ -129,15 +129,15 @@ class CompanyCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildFooterItem(
-                      icon: Icons.work_outline,
-                      text: "$activeProjectsCount Dự án đang tuyển",
-                      color: Colors.green.shade700,
-                      bgColor: Colors.green.shade50,
-                    ),
+                    // _buildFooterItem(
+                    //   icon: Icons.work_outline,
+                    //   text: "$activeProjectsCount Dự án đang tuyển",
+                    //   color: Colors.green.shade700,
+                    //   bgColor: Colors.green.shade50,
+                    // ),
                     _buildFooterItem(
                       icon: Icons.verified_user_outlined,
-                      text: company.status == 'ACTIVE' ? "Đã Xác minh" : "Chưa xác minh",
+                      text: company.status == 'ACTIVE' ? "Đang hoạt động" : "Tạm ngưng",
                       color: company.status == 'ACTIVE' ? Colors.blue.shade700 : Colors.orange.shade700,
                       bgColor: company.status == 'ACTIVE' ? Colors.blue.shade50 : Colors.orange.shade50,
                     ),

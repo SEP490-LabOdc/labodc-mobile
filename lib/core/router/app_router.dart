@@ -209,29 +209,36 @@ class AppRouter {
 
   // === PRIVATE METHODS (Giữ nguyên) ===
 
-  static String? _handleRedirect(
-      GoRouterState state,
-      AuthProvider authProvider,
-      ) {
+  static String? _handleRedirect(GoRouterState state, AuthProvider authProvider) {
     final currentPath = state.uri.toString();
     final isAuthenticated = authProvider.isAuthenticated;
+    final isInitialCheckComplete = authProvider.isInitialCheckComplete;
     final role = authProvider.currentUser?.role;
     final targetHomeRoute = getHomeRouteByRole(role);
 
-    // debugPrint('AppRouter Redirect: $currentPath | Auth: $isAuthenticated | Role: $role');
-
-    if (currentPath == Routes.splash && !authProvider.isInitialCheckComplete) {
+    // 1. Nếu chưa kiểm tra xong trạng thái ban đầu (đang ở Splash), không redirect
+    if (currentPath == Routes.splash && !isInitialCheckComplete) {
       return null;
     }
 
-    if (!isAuthenticated && _isProtectedRoute(currentPath)) {
-      return Routes.login;
+    // 2. Nếu CHƯA đăng nhập
+    if (!isAuthenticated) {
+      // Nếu đang ở các trang công khai (Login, Register, Splash), cho phép ở lại
+      if (currentPath == Routes.login || currentPath == Routes.register || currentPath == Routes.splash) {
+        return null;
+      }
+      // Nếu cố vào trang bảo mật, bắt quay về Login
+      if (_isProtectedRoute(currentPath)) {
+        return Routes.login;
+      }
     }
 
-    if (isAuthenticated && (currentPath == Routes.login)) {
+    // 3. Nếu ĐÃ đăng nhập mà vẫn ở trang Login/Register/Splash
+    if (isAuthenticated && (currentPath == Routes.login || currentPath == Routes.register || currentPath == Routes.splash)) {
       return targetHomeRoute;
     }
 
+    // 4. Kiểm tra quyền truy cập Role (giữ nguyên logic của bạn)
     if (isAuthenticated && _requiresRoleCheck(currentPath)) {
       if (!_hasRequiredRole(currentPath, role)) {
         return targetHomeRoute;

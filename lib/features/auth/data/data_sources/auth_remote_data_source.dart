@@ -39,35 +39,48 @@ class AuthRemoteDataSource {
 
   Future<AuthModel> login(String email, String password) async {
     final url = ApiConfig.endpoint("/api/v1/auth/login");
+    final requestBody = jsonEncode({"email": email, "password": password});
 
     try {
+      // Debug Request
+      debugPrint('🚀 [API Request] POST: $url');
+      debugPrint('Payload: $requestBody');
+
       final response = await http.post(
         url,
         headers: ApiConfig.defaultHeaders,
-        body: jsonEncode({"email": email, "password": password}),
-      ).timeout(const Duration(seconds: 15)); // Giới hạn thời gian chờ
+        body: requestBody,
+      ).timeout(const Duration(seconds: 15));
 
-      debugPrint('API Debug: Login Request URL: $url');
-
+      // Debug Response
+      debugPrint('📥 [API Response] Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
 
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          debugPrint('✅ Login Success: Parsing AuthModel...');
           return AuthModel.fromJson(jsonResponse['data']);
         } else {
+          debugPrint('⚠️ Login Failure (Business Logic): ${jsonResponse['message']}');
           throw InvalidInputFailure(jsonResponse['message'] ?? "Login failed");
         }
       } else {
+        debugPrint('❌ Server Error: ${response.statusCode}');
         throw _handleResponseError(response);
       }
-    } on SocketException {
+    } on SocketException catch (e) {
+      debugPrint('🌐 Network Error (Socket): $e');
       throw const NetworkFailure();
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      debugPrint('⏳ Timeout Error: $e');
       throw const NetworkFailure();
-    } on Failure {
+    } on Failure catch (e) {
+      debugPrint('🏗️ Handled Failure: ${e.message}');
       rethrow;
     } catch (e) {
+      debugPrint('💀 Unknown Crash: $e');
       throw UnknownFailure(e.toString());
     }
   }

@@ -87,32 +87,34 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ---------------------------------------------------------------------
-  // LOGIN WITH EMAIL/PASSWORD
-  // ---------------------------------------------------------------------
   Future<bool> login(String email, String password, bool rememberMe) async {
+    _error = null;
     _setLoading(true);
+
     try {
       _auth = await loginUseCase.call(email, password);
 
       if (_auth != null) {
-        // Save token if needed
         if (rememberMe) {
           await BiometricHelper.saveAuthData(_auth!.refreshToken, _auth!.userId);
         } else {
           await BiometricHelper.deleteCredentials();
         }
 
-        debugPrint("✅ Login OK → loading user profile");
         await _loadUserProfile();
-
+        _isInitialCheckComplete = true;
+        notifyListeners();
         return true;
       }
     } on Failure catch (f) {
+      // SỬA: Lấy message từ Failure (đảm bảo tầng Data đã parse đúng "Dữ liệu không hợp lệ")
       _error = f.message;
+      debugPrint("❌ Login Failure: ${f.message}");
     } catch (e) {
-      _error = e.toString();
+      _error = "Lỗi hệ thống: ${e.toString()}";
     } finally {
+      // QUAN TRỌNG: Phải đảm bảo flag này luôn true để Router không nhảy về Splash
+      _isInitialCheckComplete = true;
       _setLoading(false);
     }
     return false;

@@ -121,51 +121,30 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    try {
-      // ✅ THAY ĐỔI LỚN: Gọi hàm login với cờ _rememberMe
-      final success = await authProvider.login(email, password, _rememberMe);
-      if (!mounted) return;
+    // Gọi login
+    final success = await authProvider.login(email, password, _rememberMe);
 
-      if (success) {
-        // ✅ SỬA: Dùng VibrationType.success
-        await VibrationService.vibrate(VibrationType.success);
+    if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: const [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text("Đăng nhập thành công!"),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+    if (success) {
+      await VibrationService.vibrate(VibrationType.success);
 
-        // Cập nhật lại trạng thái Biometric sau khi login/save token
-        _checkBiometricAvailability();
+      // Hiển thị thông báo thành công
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Đăng nhập thành công!"),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
 
-        // Điều hướng theo role
-        final route = AppRouter.getHomeRouteByRole(authProvider.role);
-        context.go(route);
-
-      } else {
-        // ✅ SỬA: Dùng VibrationType.error
-        await VibrationService.vibrate(VibrationType.error);
-
-        // Hiển thị lỗi từ AuthProvider
-        final errorMessage = authProvider.errorMessage ?? "Lỗi không xác định";
-        ScaffoldMessenger.of(context).showSnackBar(_buildErrorSnackBar(errorMessage));
-      }
-    } catch (e) {
-      if (!mounted) return;
-      // ✅ SỬA: Dùng VibrationType.error
+      // CHỈ ĐIỀU HƯỚNG KHI THÀNH CÔNG
+      final route = AppRouter.getHomeRouteByRole(authProvider.role);
+      context.go(route); // Dùng context.go để thay thế hoàn toàn stack
+    } else {
+      // THẤT BẠI: Ở lại trang Login và hiện lỗi
       await VibrationService.vibrate(VibrationType.error);
-
-      // Hiển thị lỗi catch (nếu có)
-      final errorMessage = authProvider.errorMessage ?? e.toString();
+      final errorMessage = authProvider.errorMessage ?? "Email hoặc mật khẩu không đúng";
       ScaffoldMessenger.of(context).showSnackBar(_buildErrorSnackBar(errorMessage));
     }
   }
@@ -214,17 +193,17 @@ class _LoginPageState extends State<LoginPage> {
             final isLoading = authProvider.isLoading;
 
             // Xử lý điều hướng nếu người dùng đã login và ở trang này
-            if (authProvider.isAuthenticated && authProvider.isInitialCheckComplete) {
-              final route = AppRouter.getHomeRouteByRole(authProvider.role);
-
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final currentPath = GoRouterState.of(context).uri.toString();
-                if (currentPath == '/login') {
-                  context.go(route);
-                }
-              });
-              return const SizedBox.shrink();
-            }
+            // if (authProvider.isAuthenticated && authProvider.isInitialCheckComplete) {
+            //   final route = AppRouter.getHomeRouteByRole(authProvider.role);
+            //
+            //   WidgetsBinding.instance.addPostFrameCallback((_) {
+            //     final currentPath = GoRouterState.of(context).uri.toString();
+            //     if (currentPath == '/login') {
+            //       context.go(route);
+            //     }
+            //   });
+            //   return const SizedBox.shrink();
+            // }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),

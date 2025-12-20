@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 import '../cubit/project_fund_cubit.dart';
@@ -8,7 +9,7 @@ import 'package:labodc_mobile/core/get_it/get_it.dart';
 
 import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 import 'package:labodc_mobile/features/milestone/data/models/project_milestone_model.dart';
-
+import 'package:labodc_mobile/features/notification/presentation/widgets/notification_bell.dart';
 
 class ProjectFundPage extends StatelessWidget {
   const ProjectFundPage({super.key});
@@ -27,150 +28,129 @@ class _ProjectFundView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
-      body: SafeArea(
-        child: BlocBuilder<ProjectFundCubit, ProjectFundState>(
-          builder: (context, state) {
-            if (state.isInitialLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return RefreshIndicator(
-              onRefresh: () => context.read<ProjectFundCubit>().loadInitial(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.account_balance_wallet_outlined,
-                            color: scheme.primary,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Quản lý Quỹ Nhóm',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Phân bổ và quản lý nguồn tiền cho các thành viên trong nhóm',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: Colors.grey[700]),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+      backgroundColor: scheme.surface,
+      appBar: AppBar(
+        title: const Text(
+          "Quản lý Quỹ Nhóm",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 0,
+        centerTitle: false,
+      ),
+      body: BlocBuilder<ProjectFundCubit, ProjectFundState>(
+        builder: (context, state) {
+          if (state.isInitialLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return RefreshIndicator(
+            onRefresh: () => context.read<ProjectFundCubit>().loadInitial(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Chọn dự án
+                  Text(
+                    'Chọn dự án:',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  _ProjectDropdown(state: state),
 
-                    const SizedBox(height: 24),
-
-                    // Chọn dự án
-                    Text(
-                      'Chọn dự án:',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  if (state.errorMessage != null) ...[
                     const SizedBox(height: 8),
-                    _ProjectDropdown(state: state),
+                    _ErrorBox(message: state.errorMessage!),
+                  ],
 
-                    if (state.errorMessage != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: scheme.error,
-                            size: 18,
+                  const SizedBox(height: 24),
+
+                  // 2 thẻ Đang giữ / Đã chia
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FundSummaryCard(
+                          title: 'Đang Giữ',
+                          icon: Icons.account_balance_wallet_outlined,
+                          backgroundColor: const Color(0xFF5B5FFF),
+                          amountText: ProjectDataFormatter.formatCurrency(
+                            context,
+                            state.holdingAmount,
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              state.errorMessage!,
-                              style: TextStyle(color: scheme.error),
-                            ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _FundSummaryCard(
+                          title: 'Đã Chia',
+                          icon: Icons.payments_outlined,
+                          backgroundColor: const Color(0xFF00B56A),
+                          amountText: ProjectDataFormatter.formatCurrency(
+                            context,
+                            state.distributedAmount,
                           ),
-                          IconButton(
-                            onPressed: () => context
-                                .read<ProjectFundCubit>()
-                                .clearError(),
-                            icon: const Icon(Icons.close, size: 18),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
+                  ),
 
-                    const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                    // 2 thẻ Đang giữ / Đã chia (dùng formatter)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _FundSummaryCard(
-                            title: 'Đang Giữ',
-                            icon: Icons.credit_card_outlined,
-                            backgroundColor: const Color(0xFF5B5FFF),
-                            amountText: ProjectDataFormatter.formatCurrency(
-                              context,
-                              state.holdingAmount,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _FundSummaryCard(
-                            title: 'Đã Chia',
-                            icon: Icons.show_chart_outlined,
-                            backgroundColor: const Color(0xFF00B56A),
-                            amountText: ProjectDataFormatter.formatCurrency(
-                              context,
-                              state.distributedAmount,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Card Milestones
-                    _MilestonesCard(
-                      state: state,
-                    ),
-                  ],
-                ),
+                  // Danh sách Milestones
+                  _MilestonesCard(state: state),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ======================= WIDGET PHỤ TRỢ =======================
+
+class _ErrorBox extends StatelessWidget {
+  final String message;
+  const _ErrorBox({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: scheme.error, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: scheme.error, fontSize: 13),
+            ),
+          ),
+          IconButton(
+            onPressed: () => context.read<ProjectFundCubit>().clearError(),
+            icon: const Icon(Icons.close, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
       ),
     );
   }
@@ -434,14 +414,14 @@ class _MilestoneRow extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Còn lại',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey[600]),
-              ),
+              // const SizedBox(width: 8),
+              // Text(
+              //   'Còn lại',
+              //   style: Theme.of(context)
+              //       .textTheme
+              //       .bodySmall
+              //       ?.copyWith(color: Colors.grey[600]),
+              // ),
             ],
           ),
           const SizedBox(height: 8),

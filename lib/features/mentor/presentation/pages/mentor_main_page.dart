@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_approvals_page.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_chat_page.dart';
+import '../../../../wallet/presentation/pages/my_wallet_page.dart';
+import '../../../project_fund/presentation/pages/project_fund_page.dart';
 import '../../../report/presentation/pages/report_page.dart';
 import '../../../user_profile/presentation/pages/profile_page.dart';
 import 'mentor_dashboard_page.dart';
@@ -18,9 +20,11 @@ class _MentorMainPageState extends State<MentorMainPage> {
 
   final List<Widget> _screens = [
     const MentorDashboardPage(),
-    const MentorApprovalsPage(),
+    // const MentorApprovalsPage(),
     // const MentorChatPage(),
-    ReportPage(),
+    // ReportPage(),
+    const ProjectFundPage(),
+    const MyWalletPage(),
     const ProfilePage(),
   ];
 
@@ -44,16 +48,16 @@ class _MentorMainPageState extends State<MentorMainPage> {
             label: "Dashboard",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.approval),
-            label: "Phê duyệt",
+            icon: Icon(Icons.wallet_membership),
+            label: "Quỹ",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.report),
-            label: "Báo cáo",
+            icon: Icon(Icons.wallet),
+            label: "Ví",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: "Cá nhân",
+            label: "Hồ sơ",
           ),
         ],
       ),
