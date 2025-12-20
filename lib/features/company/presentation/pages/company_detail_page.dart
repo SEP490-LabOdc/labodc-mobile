@@ -3,9 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/get_it/get_it.dart';
 import '../../../../shared/widgets/network_image_with_fallback.dart';
+import '../../../hiring_projects/presentation/widgets/related_project_miniCard.dart'; // Import mini card
 import '../../data/models/company_model.dart';
 import '../cubit/company_detail_cubit.dart';
 import '../cubit/company_detail_state.dart';
+import '../cubit/company_projects_cubit.dart'; // Đảm bảo bạn đã tạo Cubit này
+import '../widgets/company_project_mini_card.dart';
 
 class CompanyDetailPage extends StatelessWidget {
   final String companyId;
@@ -14,15 +17,26 @@ class CompanyDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<CompanyDetailCubit>(
-      create: (context) => getIt<CompanyDetailCubit>()..fetchCompanyDetail(companyId),
+    final theme = Theme.of(context);
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<CompanyDetailCubit>(
+          create: (context) => getIt<CompanyDetailCubit>()..fetchCompanyDetail(companyId),
+        ),
+        BlocProvider<CompanyProjectsCubit>(
+          create: (context) => getIt<CompanyProjectsCubit>()..fetchProjects(companyId),
+        ),
+      ],
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
-          title: const Text("Hồ sơ Doanh nghiệp", style: TextStyle(fontWeight: FontWeight.w600)),
-          centerTitle: true,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
+          title: Text(
+            'Chi tiết doanh nghiệp',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          centerTitle: false,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
           elevation: 0.5,
         ),
         body: BlocBuilder<CompanyDetailCubit, CompanyDetailState>(
@@ -32,22 +46,7 @@ class CompanyDetailPage extends StatelessWidget {
             }
 
             if (state is CompanyDetailError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-                      const SizedBox(height: 16),
-                      Text("Đã xảy ra lỗi tải trang", style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      // Hiển thị chi tiết lỗi để debug (có thể bỏ trong production)
-                      Text(state.message, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              );
+              return _buildErrorUI(context, state.message);
             }
 
             if (state is CompanyDetailLoaded) {
@@ -77,6 +76,10 @@ class CompanyDetailPage extends StatelessWidget {
                     _buildLegalInfo(context, company),
                     const SizedBox(height: 16),
                     _buildContactInfo(context, company),
+
+                    // === PHẦN DANH SÁCH DỰ ÁN CUỘN NGANG ===
+                    const SizedBox(height: 30),
+                    _buildRelatedProjectsSection(context),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -89,15 +92,78 @@ class CompanyDetailPage extends StatelessWidget {
     );
   }
 
-  // --- WIDGET LOGIC ---
+  // --- WIDGET DANH SÁCH DỰ ÁN CUỘN NGANG ---
+
+  Widget _buildRelatedProjectsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Row(
+            children: [
+              Icon(Icons.rocket_launch_outlined, color: Theme.of(context).primaryColor, size: 22),
+              const SizedBox(width: 8),
+              const Text(
+                "Dự án",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 170, // Chiều cao tương ứng với RelatedProjectMiniCard
+          child: BlocBuilder<CompanyProjectsCubit, CompanyProjectsState>(
+            builder: (context, state) {
+              if (state is CompanyProjectsLoading) {
+                return const Center(child: CircularProgressIndicator.adaptive());
+              }
+              if (state is CompanyProjectsLoaded) {
+                if (state.projects.isEmpty) {
+                  return const Center(child: Text("Công ty hiện chưa có dự án nào."));
+                }
+                return ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: state.projects.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final project = state.projects[index];
+                    return CompanyProjectMiniCard(project: project);
+                  },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- CÁC WIDGET LOGIC GIỮ NGUYÊN ---
+
+  Widget _buildErrorUI(BuildContext context, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            Text("Đã xảy ra lỗi tải trang", style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildCompanyHeader(BuildContext context, CompanyModel company) {
     final bool isActive = company.status == 'ACTIVE';
-
-    // === LOGIC TƯƠNG LAI ===
-    // 1. Hiện tại company.logoUrl là null -> safeLogoUrl = '' -> Hiện ảnh fallback (logo.png)
-    // 2. Sau này BE trả về link ảnh -> safeLogoUrl = link -> Hiện ảnh mạng
-    // 3. Nếu BE trả về link PDF -> safeLogoUrl = '' -> Hiện ảnh fallback (tránh lỗi)
     String safeLogoUrl = '';
     if (company.logoUrl != null && company.logoUrl!.isNotEmpty) {
       if (!company.logoUrl!.toLowerCase().endsWith('.pdf')) {
@@ -128,7 +194,7 @@ class CompanyDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: NetworkImageWithFallback(
                     imageUrl: safeLogoUrl,
-                    fallbackAsset: 'assets/images/logo.png', // Đảm bảo bạn có file này
+                    fallbackAsset: 'assets/images/logo.png',
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
@@ -149,67 +215,44 @@ class CompanyDetailPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isActive ? Colors.green.shade50 : Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isActive ? Colors.green.shade200 : Colors.orange.shade200,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isActive ? Icons.check_circle : Icons.pending,
-                            size: 14,
-                            color: isActive ? Colors.green.shade700 : Colors.orange.shade700,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isActive ? "Đang hoạt động" : "Chờ xác minh",
-                            style: TextStyle(
-                              color: isActive ? Colors.green.shade700 : Colors.orange.shade700,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _buildStatusChip(isActive),
                   ],
                 ),
               ),
             ],
           ),
-          if (company.website != null && company.website!.isNotEmpty) ...[
-            const Divider(height: 24),
-            InkWell(
-              onTap: () {
-                // Logic mở web
-              },
-              child: Row(
-                children: [
-                  Icon(Icons.language, size: 18, color: Theme.of(context).primaryColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      company.website!,
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        decoration: TextDecoration.underline,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Icon(Icons.arrow_outward, size: 16, color: Colors.grey.shade400),
-                ],
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.green.shade50 : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isActive ? Colors.green.shade200 : Colors.orange.shade200,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isActive ? Icons.check_circle : Icons.pending,
+            size: 14,
+            color: isActive ? Colors.green.shade700 : Colors.orange.shade700,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isActive ? "Đang hoạt động" : "Chờ xác minh",
+            style: TextStyle(
+              color: isActive ? Colors.green.shade700 : Colors.orange.shade700,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
             ),
-          ]
+          ),
         ],
       ),
     );
@@ -251,7 +294,7 @@ class CompanyDetailPage extends StatelessWidget {
   Widget _buildLegalInfo(BuildContext context, CompanyModel company) {
     return _buildSectionContainer(
       context,
-      title: "Thông tin Pháp lý",
+      title: "Thông tin",
       icon: Icons.gavel,
       children: [
         _buildInfoRow(context, "Mã số thuế:", company.taxCode ?? "Đang cập nhật", isCopyable: true),

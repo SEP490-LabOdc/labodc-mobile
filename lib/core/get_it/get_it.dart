@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:labodc_mobile/features/hiring_projects/presentation/cubit/related_projects_preview_cubit.dart';
 import '../../features/company/domain/use_cases/get_company_detail_use_case.dart';
 import '../../features/company/presentation/cubit/company_detail_cubit.dart';
+import '../../features/company/presentation/cubit/company_projects_cubit.dart';
 import '../../features/hiring_projects/data/data_sources/project_remote_data_source.dart';
 import '../../features/hiring_projects/data/repositories_impl/project_repository_impl.dart';
 import '../../features/hiring_projects/domain/repositories/project_repository.dart';
@@ -420,6 +421,7 @@ Future<void> init() async {
   getIt.registerFactory<CompanyDetailCubit>(
         () => CompanyDetailCubit(getCompanyDetailUseCase: getIt<GetCompanyDetailUseCase>()),
   );
+  getIt.registerFactory(() => CompanyProjectsCubit(repository: getIt<CompanyRepository>()));
 
 // =========================
 //  TRANSACTION & WALLET FEATURE

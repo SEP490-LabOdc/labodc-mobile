@@ -10,13 +10,14 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../shared/models/search_request_model.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../models/company_model.dart';
+import '../models/company_project_model.dart';
 import '../models/paginated_company_model.dart';
 
 abstract class CompanyRemoteDataSource {
   Future<List<CompanyModel>> getActiveCompanies();
   Future<CompanyModel> getCompanyDetail(String companyId);
   Future<PaginatedCompanyModel> searchCompanies(SearchRequest request);
-}
+  Future<List<CompanyProjectModel>> getProjectsByCompany(String companyId);}
 
 class CompanyRemoteDataSourceImpl implements CompanyRemoteDataSource {
   final http.Client client;
@@ -146,6 +147,53 @@ class CompanyRemoteDataSourceImpl implements CompanyRemoteDataSource {
     } catch (e) {
       if (e is ServerException || e is NetworkException) rethrow;
       debugPrint("💥 [SearchCompanies] Unexpected Error: $e");
+      throw ServerException('Unexpected error: $e');
+    }
+  }
+  @override
+  Future<List<CompanyProjectModel>> getProjectsByCompany(String companyId) async {
+    final uri = ApiConfig.endpoint('api/v1/projects/companies/$companyId');
+
+    final token = await authRepository.getSavedToken();
+
+    debugPrint(" [SearchCompanies] URI: $uri");
+
+    final headers = {
+      ...ApiConfig.defaultHeaders,
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await client.get(
+        uri,
+        headers: headers,
+      );
+
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      debugPrint("📩 [GetProjectsByCompany] Status: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        if (decoded['success'] == true) {
+          return (decoded['data']['projectResponses'] as List)
+              .map((p) => CompanyProjectModel.fromJson(p))
+              .toList();
+        }
+        throw ServerException(
+          decoded['message'] ?? 'Unknown error',
+          statusCode: 422,
+        );
+      }
+
+      throw ServerException(
+        decoded['message'] ?? 'Server error',
+        statusCode: response.statusCode,
+      );
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      debugPrint("💥 [GetProjectsByCompany] Unexpected Error: $e");
       throw ServerException('Unexpected error: $e');
     }
   }
