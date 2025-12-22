@@ -13,16 +13,19 @@ class MyApplicationsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return BlocProvider(
       create: (_) => getIt<MyApplicationsCubit>()..loadApplications(),
       child: DefaultTabController(
         length: 4,
         child: Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
           appBar: AppBar(
             title: const Text("Đơn ứng tuyển của tôi",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            centerTitle: true,
+            centerTitle: false,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
             bottom: const TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
