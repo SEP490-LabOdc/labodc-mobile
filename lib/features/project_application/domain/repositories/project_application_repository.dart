@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 import '../../../../core/error/failures.dart';
+import '../../data/models/my_application_model.dart';
 import '../../data/models/project_applicant_model.dart';
 import '../../data/models/project_document_model.dart';
 import '../../data/models/submitted_cv_model.dart';
@@ -24,5 +25,5 @@ abstract class ProjectApplicationRepository {
       );
 
   Future<Either<Failure, List<ProjectDocumentModel>>> getProjectDocuments(String projectId);
-
+  Future<Either<Failure, List<MyApplicationModel>>> getMyApplications();
 }

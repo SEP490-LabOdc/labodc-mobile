@@ -12,6 +12,7 @@ class Routes {
   static const String postDetail = '/post/:id';
   static const String projectDetail = '/projects/:id';
   static const String myProjectDetail = '/my-projects/:id';
+  static const String myApplications = '/my-applications';
 
   static const String milestoneDetail = '/milestoneDetail/:id';
 
@@ -41,6 +42,7 @@ class Routes {
   static const String postDetailName = 'post-detail';
   static const String projectDetailName = 'project-detail';
   static const String myProjectDetailName = 'my-project-detail';
+  static const String myApplicationsName = 'my-applications';
   static const String settingName = 'setting';
   static const String labAdminName = 'lab-admin';
   static const String uploadCvName = 'upload-cv';

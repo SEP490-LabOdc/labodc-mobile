@@ -49,7 +49,7 @@ class MilestoneDisbursementTab extends StatelessWidget {
             const SizedBox(height: 12),
             _buildAmountTile(
               context,
-              title: "Nhóm Talent (70%)",
+              title: "Nhóm Talent",
               amount: data.talentAmount,
               icon: Icons.groups_rounded,
               color: Colors.blue,
@@ -58,7 +58,7 @@ class MilestoneDisbursementTab extends StatelessWidget {
             const SizedBox(height: 12),
             _buildAmountTile(
               context,
-              title: "Mentor (20%)",
+              title: "Mentor",
               amount: data.mentorAmount,
               icon: Icons.psychology_rounded,
               color: Colors.purple,
@@ -67,7 +67,7 @@ class MilestoneDisbursementTab extends StatelessWidget {
             const SizedBox(height: 12),
             _buildAmountTile(
               context,
-              title: "Phí dịch vụ LabODC (10%)",
+              title: "Phí dịch vụ LabODC",
               amount: data.systemFee,
               icon: Icons.account_balance_rounded,
               color: Colors.orange,

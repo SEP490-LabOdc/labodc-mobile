@@ -154,4 +154,36 @@ class ProjectDataFormatter {
         return status;
     }
   }
+
+
+  //My APPLICATION STATUS
+  static Color getApplicationStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return Colors.orange;
+      case 'APPROVED':
+        return Colors.green;
+      case 'REJECTED':
+        return Colors.red;
+      case 'CANCELED':
+        return Colors.grey;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  static String translateApplicationStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return 'Đang chờ duyệt';
+      case 'APPROVED':
+        return 'Đã chấp nhận';
+      case 'REJECTED':
+        return 'Đã từ chối';
+      case 'CANCELED':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  }
 }

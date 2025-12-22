@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart'; // Giữ lại nếu cần dùn
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import 'package:labodc_mobile/features/company/presentation/pages/company_detail_page.dart';
+import 'package:labodc_mobile/features/project_application/presentation/pages/my_applications_page.dart';
 import 'package:labodc_mobile/features/project_fund/presentation/pages/project_fund_page.dart';
 
 // Pages imports
@@ -142,6 +143,13 @@ class AppRouter {
             final id = state.pathParameters['id'];
             if (id == null) return const SizedBox.shrink();
             return MyProjectDetailPage(projectId: id);
+          },
+        ),
+        GoRoute(
+          path: Routes.myApplications,
+          name: Routes.myApplicationsName,
+          builder: (context, state) {
+            return MyApplicationsPage();
           },
         ),
         GoRoute(

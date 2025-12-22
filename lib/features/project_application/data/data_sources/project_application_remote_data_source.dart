@@ -10,6 +10,7 @@ import 'package:labodc_mobile/features/project_application/data/models/my_projec
 import '../../../../core/config/networks/config.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../models/my_application_model.dart';
 import '../models/project_applicant_model.dart';
 import '../models/project_application_status_model.dart';
 import '../models/project_document_model.dart';
@@ -37,7 +38,7 @@ abstract class ProjectApplicationRemoteDataSource {
       );
 
   Future<List<ProjectDocumentModel>> getProjectDocuments(String projectId);
-
+  Future<List<MyApplicationModel>> getMyApplications();
 
 }
 
@@ -488,5 +489,19 @@ class ProjectApplicationRemoteDataSourceImpl
       if (e is ServerException || e is NetworkException) rethrow;
       throw ServerException('Lỗi lấy tài liệu: $e');
     }
+  }
+
+  @override
+  @override
+  Future<List<MyApplicationModel>> getMyApplications() async {
+    final uri = ApiConfig.endpoint('/api/v1/projects/my-applications');
+    final response = await client.get(uri, headers: await _getHeaders());
+
+    final decoded = json.decode(utf8.decode(response.bodyBytes));
+    if (response.statusCode == 200 && decoded['success'] == true) {
+      final List list = decoded['data']['data'];
+      return list.map((e) => MyApplicationModel.fromJson(e)).toList();
+    }
+    throw ServerException(decoded['message'] ?? 'Lỗi tải đơn ứng tuyển');
   }
 }

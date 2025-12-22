@@ -29,6 +29,7 @@ import '../../features/project_application/domain/repositories/project_applicati
 import '../../features/project_application/domain/use_cases/apply_project_use_case.dart';
 import '../../features/project_application/domain/use_cases/get_my_submitted_cvs_use_case.dart';
 import '../../features/project_application/domain/use_cases/upload_cv_use_case.dart';
+import '../../features/project_application/presentation/cubit/my_applications_cubit.dart';
 import '../../features/project_application/presentation/cubit/project_application_cubit.dart';
 
 // Report Feature
@@ -296,6 +297,12 @@ Future<void> init() async {
   );
   getIt.registerFactoryParam<ProjectDocumentsCubit, String, void>(
         (projectId, _) => ProjectDocumentsCubit(getIt<ProjectApplicationRepository>()),
+  );
+
+  getIt.registerFactory<MyApplicationsCubit>(
+        () => MyApplicationsCubit(
+      repository: getIt<ProjectApplicationRepository>(),
+    ),
   );
 
   // ------------------------
