@@ -1,3 +1,4 @@
+
 import '../../data/models/wallet_model.dart';
 
 abstract class WalletState {}

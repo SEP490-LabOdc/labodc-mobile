@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_approvals_page.dart';
 import 'package:labodc_mobile/features/mentor/presentation/pages/mentor_chat_page.dart';
-import '../../../../wallet/presentation/pages/my_wallet_page.dart';
 import '../../../project_fund/presentation/pages/project_fund_page.dart';
 import '../../../report/presentation/pages/report_page.dart';
 import '../../../user_profile/presentation/pages/profile_page.dart';
+import '../../../wallet/presentation/pages/my_wallet_page.dart';
 import 'mentor_dashboard_page.dart';
 
 

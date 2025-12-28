@@ -15,6 +15,11 @@ class NetworkFailure extends Failure {
   const NetworkFailure() : super("Không có kết nối mạng. Vui lòng kiểm tra lại đường truyền.");
 }
 
+// THÊM VÀO ĐÂY: Lỗi liên quan đến Local Storage/DB
+class CacheFailure extends Failure {
+  const CacheFailure([String message = "Lỗi truy xuất dữ liệu cục bộ."]) : super(message);
+}
+
 // 2. Lỗi Nghiệp Vụ Cụ Thể (từ mã trạng thái HTTP 4xx)
 class UnAuthorizedFailure extends ServerFailure {
   const UnAuthorizedFailure([String message = "Phiên đăng nhập hết hạn hoặc không hợp lệ."]) : super(message, 401);

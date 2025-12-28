@@ -5,14 +5,17 @@ import '../../../../shared/models/search_request_model.dart';
 import '../../domain/entities/project_entity.dart';
 import '../../domain/entities/paginated_project_entity.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../data_sources/project_local_data_source.dart';
 import '../data_sources/project_remote_data_source.dart';
 import '../models/project_detail_model.dart';
 import '../models/project_model.dart';
 
 class ProjectRepositoryImpl implements ProjectRepository {
   final ProjectRemoteDataSource remoteDataSource;
+  final ProjectLocalDataSource localDataSource;
 
-  ProjectRepositoryImpl(this.remoteDataSource);
+
+  ProjectRepositoryImpl(this.remoteDataSource, this.localDataSource);
 
   @override
   Future<Either<Failure, PaginatedProjectEntity>> getHiringProjects({
@@ -115,6 +118,53 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return const Left(NetworkFailure());
     } catch (_) {
       return const Left(UnknownFailure());
+    }
+  }
+  @override
+  Future<Either<Failure, void>> bookmarkProject(ProjectEntity project, String userId) async {
+    try {
+      final model = ProjectModel(
+        projectId: project.projectId,
+        projectName: project.projectName,
+        description: project.description,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        currentApplicants: project.currentApplicants,
+        status: project.status,
+        skills: project.skills.map((e) => SkillModel(
+            id: e.id,
+            name: e.name,
+            description: e.description
+        )).toList(),
+      );
+      await localDataSource.saveProject(model, userId);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure("Lỗi lưu dự án vào bộ nhớ tạm."));
+    }
+  }
+
+  @override
+  Future<bool> checkIsBookmarked(String projectId, String userId) =>
+      localDataSource.isBookmarked(projectId, userId);
+
+  @override
+  Future<Either<Failure, void>> unbookmarkProject(String projectId, String userId) async {
+    try {
+      await localDataSource.removeProject(projectId, userId);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure("Không thể xóa dự án."));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProjectEntity>>> getBookmarkedProjects(String userId) async {
+    try {
+      final localData = await localDataSource.getSavedProjects(userId);
+      return Right(localData);
+    } catch (e) {
+      return const Left(CacheFailure("Lỗi tải danh sách dự án đã thích."));
     }
   }
 }

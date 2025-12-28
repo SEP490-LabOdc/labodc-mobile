@@ -15,7 +15,9 @@ import '../../../auth/presentation/provider/auth_provider.dart';
 import '../../../project_application/domain/repositories/project_application_repository.dart';
 import '../../../project_application/presentation/pages/project_applicants_page.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../domain/entities/project_entity.dart';
 import '../../data/models/project_detail_model.dart';
+import '../cubit/bookmark_projects_cubit.dart';
 
 // 3. Project Application Feature
 import '../../../project_application/presentation/cubit/project_application_cubit.dart';
@@ -42,6 +44,7 @@ class ProjectDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = context.read<AuthProvider>().userId ?? "";
     debugPrint('[ProjectDetailPage] build, projectId = $projectId');
     return MultiBlocProvider(
       providers: [
@@ -52,10 +55,12 @@ class ProjectDetailPage extends StatelessWidget {
           create: (_) => getIt<RelatedProjectsPreviewCubit>()
             ..loadPreview(projectId),
         ),
+        BlocProvider<BookmarkProjectsCubit>(
+          create: (_) => getIt<BookmarkProjectsCubit>()..loadBookmarks(currentUserId),
+        ),
       ],
       child: ProjectDetailView(projectId: projectId),
     );
-
   }
 }
 
@@ -146,7 +151,6 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         if (kDebugMode) {
           debugPrint('[ProjectDetailView] hasAppliedProject FAILURE: $failure');
         }
-        // UX kiểu big company: lỗi thì im lặng, coi như chưa apply
         setState(() {
           _checkingApplied = false;
           _hasApplied = false;
@@ -171,6 +175,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     debugPrint('[ProjectDetailView] _mapFailureToMessage: $failure');
     if (failure is ServerFailure) return failure.message;
     if (failure is NetworkFailure) return 'Vui lòng kiểm tra kết nối mạng.';
+    if (failure is CacheFailure) return failure.message;
     return 'Đã xảy ra lỗi không xác định.';
   }
 
@@ -186,7 +191,7 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     );
   }
 
-  // ================== UI PHỤ ==================
+  // ================== UI PHỤ (GIỮ NGUYÊN) ==================
 
   Widget _buildHeaderSection(BuildContext context, ProjectDetailModel p) {
     final theme = Theme.of(context);
@@ -203,7 +208,6 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
         children: [
           Row(
             children: [
-              // Tiêu đề + công ty
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,14 +230,14 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
                           ),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Text(
+                              child: Text(
                                 p.companyName!,
                                 maxLines: 2,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
                                 ),
-                          )
+                              )
                           )
                         ],
                       ),
@@ -878,12 +882,12 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
     final theme = Theme.of(context);
 
     final authProvider = context.watch<AuthProvider>();
+    final currentUserId = authProvider.userId ?? "";
     final role = (authProvider.currentUser?.role ?? '').toUpperCase();
     debugPrint(
         '[ProjectDetailView] build(), role=$role, loading=$_loading, error=$_error, hasApplied=$_hasApplied, checkingApplied=$_checkingApplied');
 
     final canApplyRole = role == 'TALENT' || role == 'USER';
-    final isMentorRole = role == 'MENTOR';
 
     final canShowBottomArea = canApplyRole &&
         _project != null &&
@@ -926,12 +930,51 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
       child: Scaffold(
         appBar: AppBar(
           elevation: 0,
-          title: Text(
+          title: const Text(
             'Chi tiết dự án',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
+          actions: [
+            if (_project != null)
+              BlocBuilder<BookmarkProjectsCubit, List<ProjectEntity>>(
+                builder: (context, savedProjects) {
+                  final isBookmarked = savedProjects.any((p) => p.projectId == _project!.id);
+                  return IconButton(
+                    icon: Icon(isBookmarked ? Icons.favorite : Icons.favorite_border),
+                    color: isBookmarked ? Colors.redAccent : Colors.white,
+                    onPressed: () {
+                      if (currentUserId.isEmpty) {
+                        _showSnackBar("Vui lòng đăng nhập để lưu dự án", isError: true);
+                        return;
+                      }
+
+                      // FIX mapping types: ProjectDetailModel skills -> SkillEntity
+                      final entityToSave = ProjectEntity(
+                        projectId: _project!.id,
+                        projectName: _project!.title,
+                        description: _project!.description,
+                        startDate: _project!.startDate ?? DateTime.now(),
+                        endDate: _project!.endDate ?? DateTime.now(),
+                        currentApplicants: 0, // Mặc định vì model detail ko có field này
+                        status: _project!.status,
+                        skills: _project!.skills.map((s) => SkillEntity(
+                          id: s.id,
+                          name: s.name,
+                          description: s.description ?? "",
+                        )).toList(),
+                      );
+
+                      context.read<BookmarkProjectsCubit>().toggleBookmark(entityToSave, currentUserId);
+                      _showSnackBar(isBookmarked
+                          ? 'Đã xóa khỏi danh sách yêu thích'
+                          : 'Đã lưu vào danh sách yêu thích');
+                    },
+                  );
+                },
+              ),
+          ],
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -1075,12 +1118,12 @@ class _ProjectDetailViewState extends State<ProjectDetailView> {
   }
 }
 
+// GIỮ NGUYÊN Related Projects Section
 Widget _buildRelatedProjectsSection(BuildContext context) {
   final theme = Theme.of(context);
 
   return BlocBuilder<RelatedProjectsPreviewCubit, RelatedProjectsPreviewState>(
     builder: (context, state) {
-      // Đang load: skeleton ngang
       if (state.isLoading) {
         return SizedBox(
           height: 170,
@@ -1100,28 +1143,18 @@ Widget _buildRelatedProjectsSection(BuildContext context) {
           ),
         );
       }
-
-      // Lỗi
       if (state.errorMessage != null) {
         return Text(
           state.errorMessage!,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.error,
-          ),
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
         );
       }
-
-      // Không có dự án liên quan
       if (state.projects.isEmpty) {
         return Text(
           'Chưa có dự án liên quan nào.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         );
       }
-
-      // Có dữ liệu
       return SizedBox(
         height: 180,
         child: ListView.separated(
@@ -1138,3 +1171,24 @@ Widget _buildRelatedProjectsSection(BuildContext context) {
   );
 }
 
+// Widget SectionCard của bạn
+class SectionCard extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const SectionCard({super.key, required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        child,
+      ],
+    );
+  }
+}

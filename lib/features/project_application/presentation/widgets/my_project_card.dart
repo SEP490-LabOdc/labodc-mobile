@@ -45,6 +45,7 @@ class MyProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     // Sử dụng Formatter
     final statusColor = ProjectDataFormatter.getStatusColor(status);
@@ -54,16 +55,18 @@ class MyProjectCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        // Sử dụng color của Card hoặc surface
+        color: theme.cardTheme.color ?? colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(theme.brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100),
+        // Border tinh tế thay đổi theo theme
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -89,7 +92,6 @@ class MyProjectCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 🔥 HERO ANIMATION cho Title
                           Hero(
                             tag: 'project_title_$projectId',
                             child: Material(
@@ -99,7 +101,7 @@ class MyProjectCard extends StatelessWidget {
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Colors.black87,
+                                  color: colorScheme.onSurface,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -110,13 +112,13 @@ class MyProjectCard extends StatelessWidget {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                Icon(Icons.business, size: 14, color: Colors.grey.shade500),
+                                Icon(Icons.business, size: 14, color: theme.hintColor),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     companyName!,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.grey.shade600,
+                                      color: theme.hintColor,
                                       fontWeight: FontWeight.w500,
                                     ),
                                     maxLines: 1,
@@ -134,9 +136,9 @@ class MyProjectCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: statusColor.withOpacity(0.2)),
+                        border: Border.all(color: statusColor.withOpacity(0.3)),
                       ),
                       child: Text(
                         statusText,
@@ -150,9 +152,9 @@ class MyProjectCard extends StatelessWidget {
                   ],
                 ),
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Divider(height: 1, thickness: 0.5),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(height: 1, thickness: 0.5, color: theme.dividerColor.withOpacity(0.2)),
                 ),
 
                 // --- BODY: DESCRIPTION ---
@@ -163,9 +165,9 @@ class MyProjectCard extends StatelessWidget {
                       description,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: colorScheme.onSurface.withOpacity(0.8),
                         height: 1.5,
                       ),
                     ),
@@ -178,17 +180,18 @@ class MyProjectCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        // Màu xanh lá thích ứng nhẹ với Dark Mode
+                        color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.monetization_on_outlined, size: 16, color: Colors.green.shade700),
+                          const Icon(Icons.monetization_on_outlined, size: 16, color: Colors.green),
                           const SizedBox(width: 6),
                           Text(
                             formattedBudget,
-                            style: TextStyle(
-                              color: Colors.green.shade700,
+                            style: const TextStyle(
+                              color: Colors.green,
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
                             ),
@@ -201,13 +204,13 @@ class MyProjectCard extends StatelessWidget {
                     if (dateRange != null)
                       Row(
                         children: [
-                          Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey.shade500),
+                          Icon(Icons.calendar_month_outlined, size: 14, color: theme.hintColor),
                           const SizedBox(width: 4),
                           Text(
                             dateRange,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: theme.hintColor,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -229,13 +232,16 @@ class MyProjectCard extends StatelessWidget {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: colorScheme.surfaceVariant.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
                         ),
                         child: Text(
                           name,
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       );
                     }).toList(),

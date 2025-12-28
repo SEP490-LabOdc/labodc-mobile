@@ -34,11 +34,12 @@ class _MyProjectsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section Header
+        // --- SECTION HEADER ---
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
@@ -48,10 +49,15 @@ class _MyProjectsView extends StatelessWidget {
                 title,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  // Tự động đổi màu dựa trên Brightness của Theme
+                  color: colorScheme.onSurface,
                 ),
               ),
-              // Có thể thêm nút "Xem tất cả" ở đây nếu cần
+              // Thêm nút Xem tất cả nếu cần, sử dụng textButtonTheme đã định nghĩa
+              // TextButton(
+              //     onPressed: () {},
+              //     child: const Text('Xem tất cả')
+              // ),
             ],
           ),
         ),
@@ -59,6 +65,7 @@ class _MyProjectsView extends StatelessWidget {
 
         BlocBuilder<MyProjectsCubit, MyProjectsState>(
           builder: (context, state) {
+            // --- LOADING STATE ---
             if (state.status == MyProjectsStatus.loading) {
               return const Center(
                 child: Padding(
@@ -68,22 +75,28 @@ class _MyProjectsView extends StatelessWidget {
               );
             }
 
+            // --- FAILURE STATE ---
             if (state.status == MyProjectsStatus.failure) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 32),
-                      const SizedBox(height: 8),
+                      Icon(
+                          Icons.error_outline_rounded,
+                          color: colorScheme.error,
+                          size: 40
+                      ),
+                      const SizedBox(height: 12),
                       Text(
                         state.errorMessage ?? 'Không thể tải danh sách dự án.',
-                        style: TextStyle(color: theme.colorScheme.error),
+                        style: TextStyle(color: colorScheme.error),
                         textAlign: TextAlign.center,
                       ),
-                      TextButton.icon(
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
                         onPressed: () => context.read<MyProjectsCubit>().loadMyProjects(),
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(Icons.refresh, size: 18),
                         label: const Text("Thử lại"),
                       )
                     ],
@@ -92,29 +105,37 @@ class _MyProjectsView extends StatelessWidget {
               );
             }
 
+            // --- EMPTY STATE ---
             if (state.projects.isEmpty) {
               return Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  // Sử dụng surfaceVariant hoặc màu nền nhẹ tùy chỉnh cho cả 2 mode
+                  color: colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.folder_open_outlined, size: 48, color: Colors.grey.shade400),
-                    const SizedBox(height: 12),
+                    Icon(
+                        Icons.folder_open_outlined,
+                        size: 64,
+                        color: theme.hintColor.withOpacity(0.5)
+                    ),
+                    const SizedBox(height: 16),
                     Text(
                       'Bạn chưa tham gia dự án nào.',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.hintColor,
+                      ),
                     ),
                   ],
                 ),
               );
             }
 
-            // List of Projects
+            // --- LIST OF PROJECTS ---
             return ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

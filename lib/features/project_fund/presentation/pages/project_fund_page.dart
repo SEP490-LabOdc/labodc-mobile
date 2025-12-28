@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
+import 'package:labodc_mobile/core/get_it/get_it.dart';
 
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 import '../cubit/project_fund_cubit.dart';
 import '../cubit/project_fund_state.dart';
-import 'package:labodc_mobile/core/get_it/get_it.dart';
 
 import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 import 'package:labodc_mobile/features/milestone/data/models/project_milestone_model.dart';
-import 'package:labodc_mobile/features/notification/presentation/widgets/notification_bell.dart';
 
 class ProjectFundPage extends StatelessWidget {
   const ProjectFundPage({super.key});
@@ -32,15 +30,12 @@ class _ProjectFundView extends StatelessWidget {
     final scheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: scheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Quản lý Quỹ Nhóm",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
-        elevation: 0,
         centerTitle: false,
       ),
       body: BlocBuilder<ProjectFundCubit, ProjectFundState>(
@@ -52,54 +47,46 @@ class _ProjectFundView extends StatelessWidget {
             onRefresh: () => context.read<ProjectFundCubit>().loadInitial(),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Chọn dự án
+                  // --- CHỌN DỰ ÁN ---
                   Text(
-                    'Chọn dự án:',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    'Dự án đang theo dõi:',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: scheme.onSurface.withOpacity(0.8),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   _ProjectDropdown(state: state),
 
                   if (state.errorMessage != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     _ErrorBox(message: state.errorMessage!),
                   ],
 
                   const SizedBox(height: 24),
 
-                  // 2 thẻ Đang giữ / Đã chia
+                  // --- 2 THẺ TỔNG QUAN (Đang giữ / Đã chia) ---
                   Row(
                     children: [
                       Expanded(
                         child: _FundSummaryCard(
                           title: 'Đang Giữ',
-                          icon: Icons.account_balance_wallet_outlined,
-                          backgroundColor: const Color(0xFF5B5FFF),
-                          amountText: ProjectDataFormatter.formatCurrency(
-                            context,
-                            state.holdingAmount,
-                          ),
+                          icon: Icons.account_balance_wallet_rounded,
+                          primaryColor: const Color(0xFF5B5FFF),
+                          amount: state.holdingAmount,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _FundSummaryCard(
                           title: 'Đã Chia',
-                          icon: Icons.payments_outlined,
-                          backgroundColor: const Color(0xFF00B56A),
-                          amountText: ProjectDataFormatter.formatCurrency(
-                            context,
-                            state.distributedAmount,
-                          ),
+                          icon: Icons.payments_rounded,
+                          primaryColor: const Color(0xFF00B56A),
+                          amount: state.distributedAmount,
                         ),
                       ),
                     ],
@@ -107,7 +94,7 @@ class _ProjectFundView extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Danh sách Milestones
+                  // --- DANH SÁCH MILESTONES ---
                   _MilestonesCard(state: state),
                 ],
               ),
@@ -119,58 +106,24 @@ class _ProjectFundView extends StatelessWidget {
   }
 }
 
-// ======================= WIDGET PHỤ TRỢ =======================
-
-class _ErrorBox extends StatelessWidget {
-  final String message;
-  const _ErrorBox({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: scheme.errorContainer.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: scheme.error, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: scheme.error, fontSize: 13),
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.read<ProjectFundCubit>().clearError(),
-            icon: const Icon(Icons.close, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ======================= DROPDOWN =======================
+// ======================= WIDGET PHỤ TRỢ: DROPDOWN =======================
 
 class _ProjectDropdown extends StatelessWidget {
   final ProjectFundState state;
-
   const _ProjectDropdown({required this.state});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     if (state.projects.isEmpty) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.grey[200],
+          color: scheme.surfaceVariant.withOpacity(0.3),
         ),
         child: const Text('Bạn chưa có dự án nào.'),
       );
@@ -179,37 +132,26 @@ class _ProjectDropdown extends StatelessWidget {
     return DropdownButtonFormField<MyProjectModel>(
       value: state.selectedProject,
       isExpanded: true,
+      dropdownColor: theme.cardColor,
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(999)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        filled: true,
+        fillColor: theme.cardColor,
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.dividerColor.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 1.6,
-          ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
-        filled: true,
-        fillColor: Colors.white,
       ),
-      items: state.projects
-          .map(
-            (p) => DropdownMenuItem<MyProjectModel>(
+      items: state.projects.map((p) {
+        return DropdownMenuItem<MyProjectModel>(
           value: p,
-          child: Text(
-            p.title,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      )
-          .toList(),
+          child: Text(p.title, style: theme.textTheme.bodyMedium),
+        );
+      }).toList(),
       onChanged: (project) {
         if (project != null) {
           context.read<ProjectFundCubit>().selectProject(project);
@@ -219,71 +161,73 @@ class _ProjectDropdown extends StatelessWidget {
   }
 }
 
-// ======================= SUMMARY CARDS =======================
+// ======================= WIDGET PHỤ TRỢ: SUMMARY CARDS =======================
 
 class _FundSummaryCard extends StatelessWidget {
   final String title;
-  final String amountText;
-  final Color backgroundColor;
+  final double amount;
+  final Color primaryColor;
   final IconData icon;
 
   const _FundSummaryCard({
     required this.title,
-    required this.amountText,
-    required this.backgroundColor,
+    required this.amount,
+    required this.primaryColor,
     required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final amountText = ProjectDataFormatter.formatCurrency(context, amount);
+
     return Container(
-      height: 110,
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: primaryColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             blurRadius: 10,
             offset: const Offset(0, 4),
-            color: Colors.black.withOpacity(0.12),
+            color: primaryColor.withOpacity(0.2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top colored area
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  const SizedBox(width: 2),
-                  Icon(icon, color: Colors.white, size: 22),
-                  const SizedBox(width: 6),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          // Amount
           Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
             ),
-            alignment: Alignment.centerLeft,
             child: Text(
               amountText,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -292,70 +236,54 @@ class _FundSummaryCard extends StatelessWidget {
   }
 }
 
-// ======================= MILESTONES CARD =======================
+// ======================= WIDGET PHỤ TRỢ: MILESTONES =======================
 
 class _MilestonesCard extends StatelessWidget {
   final ProjectFundState state;
-
-  const _MilestonesCard({
-    required this.state,
-  });
+  const _MilestonesCard({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
         boxShadow: [
           BoxShadow(
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(theme.brightness == Brightness.dark ? 0.2 : 0.05),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Milestones
           Row(
             children: [
-              Icon(
-                Icons.layers_outlined,
-                size: 20,
-                color: scheme.primary.withOpacity(0.9),
-              ),
-              const SizedBox(width: 6),
+              Icon(Icons.flag_rounded, size: 20, color: scheme.primary),
+              const SizedBox(width: 8),
               Text(
                 'Milestones (${state.milestones.length})',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               if (state.isLoadingMilestones)
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
             ],
           ),
-          const SizedBox(height: 12),
-
+          const SizedBox(height: 16),
           if (state.milestones.isEmpty && !state.isLoadingMilestones)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: Text(
-                  'Không có milestone nào đang mở',
-                  style: TextStyle(color: Colors.grey[500]),
-                ),
+                child: Text('Không có milestone nào', style: TextStyle(color: theme.hintColor)),
               ),
             )
           else
@@ -363,13 +291,8 @@ class _MilestonesCard extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: state.milestones.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final m = state.milestones[index];
-                return _MilestoneRow(
-                  milestone: m,
-                );
-              },
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _MilestoneRow(milestone: state.milestones[index]),
             ),
         ],
       ),
@@ -377,97 +300,85 @@ class _MilestonesCard extends StatelessWidget {
   }
 }
 
-// ======================= MILESTONE ROW =======================
-
 class _MilestoneRow extends StatelessWidget {
   final ProjectMilestoneModel milestone;
-
-  const _MilestoneRow({
-    required this.milestone,
-  });
+  const _MilestoneRow({required this.milestone});
 
   @override
   Widget build(BuildContext context) {
-    final budgetText =
-    ProjectDataFormatter.formatCurrency(context, milestone.budget);
+    final theme = Theme.of(context);
+    final budgetText = ProjectDataFormatter.formatCurrency(context, milestone.budget);
     final endDateText = ProjectDataFormatter.formatDate(milestone.endDate);
 
     return Container(
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-        color: Colors.white,
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title + "Còn lại"
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  milestone.title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              // const SizedBox(width: 8),
-              // Text(
-              //   'Còn lại',
-              //   style: Theme.of(context)
-              //       .textTheme
-              //       .bodySmall
-              //       ?.copyWith(color: Colors.grey[600]),
-              // ),
-            ],
+          Text(
+            milestone.title,
+            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
-
-          // Budget chip
+          const SizedBox(height: 10),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Budget Chip
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: const Border.fromBorderSide(
-                    BorderSide(color: Color(0xFF00B56A)),
-                  ),
-                  color: const Color(0xFFE8FFF4),
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
                 child: Text(
                   budgetText,
-                  style: const TextStyle(
-                    color: Color(0xFF00B56A),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
+              ),
+              // Date
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 14, color: theme.hintColor),
+                  const SizedBox(width: 4),
+                  Text(endDateText, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+                ],
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
 
-          const SizedBox(height: 8),
+class _ErrorBox extends StatelessWidget {
+  final String message;
+  const _ErrorBox({required this.message});
 
-          // End date
-          Row(
-            children: [
-              Icon(Icons.access_time, size: 16, color: Colors.grey.shade500),
-              const SizedBox(width: 4),
-              Text(
-                endDateText,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey[600]),
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheme.error.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.error.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: scheme.error, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(message, style: TextStyle(color: scheme.error, fontSize: 13))),
+          IconButton(
+            onPressed: () => context.read<ProjectFundCubit>().clearError(),
+            icon: Icon(Icons.close, size: 18, color: scheme.error),
           ),
         ],
       ),

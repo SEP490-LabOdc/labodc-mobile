@@ -321,6 +321,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                   const SizedBox(height: 32),
+                  Text("Hoặc đăng nhập với", style: TextStyle(color: textColor.withOpacity(0.7))),
+                  const SizedBox(height: 16),
 
                   ElevatedButton.icon(
                     onPressed: isLoading
@@ -342,39 +344,67 @@ class _LoginPageState extends State<LoginPage> {
                         );
                       }
                     },
-                    icon: const Icon(Icons.g_mobiledata, size: 30, color: Colors.white),
-                    label: const Text("Đăng nhập bằng Google", style: TextStyle(color: Colors.white)),
+                    // Logo Google
+                    icon: Image.asset(
+                      'assets/images/google_logo.webp',
+                      height: 24,
+                      width: 24,
+                    ),
+                    // Label với màu chữ thích ứng theo Theme
+                    label: Text(
+                      "Đăng nhập bằng Google",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black87,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
+                      // Màu nền trắng cho Light mode và màu tối cho Dark mode
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF131314) // Màu chuẩn Google Dark
+                          : Colors.white,
+                      foregroundColor: Colors.black87,
                       minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                      ),
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Chưa có tài khoản? ",
-                        style: TextStyle(
-                          color: textColor.withOpacity(0.7),
-                          fontSize: 16,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: isLoading ? null : () {
-                          context.go('/register');
-                        },
-                        child: Text(
-                          "Đăng ký",
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   children: [
+                  //     Text(
+                  //       "Chưa có tài khoản? ",
+                  //       style: TextStyle(
+                  //         color: textColor.withOpacity(0.7),
+                  //         fontSize: 16,
+                  //       ),
+                  //     ),
+                  //     TextButton(
+                  //       onPressed: isLoading ? null : () {
+                  //         context.go('/register');
+                  //       },
+                  //       child: Text(
+                  //         "Đăng ký",
+                  //         style: TextStyle(
+                  //           color: AppColors.primary,
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.w600,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                   const SizedBox(height: 16),
                   Text(
                     "Bằng cách đăng nhập, bạn đồng ý với\nĐiều khoản sử dụng và Chính sách bảo mật",
@@ -386,22 +416,22 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  TextButton.icon(
-                    icon: Icon(Icons.home_outlined, color: AppColors.primary),
-                    label: Text(
-                      "Trở về Trang chủ",
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onPressed: isLoading
-                        ? null
-                        : () {
-                      context.go('/login');
-                    },
-                  ),
+                  // TextButton.icon(
+                  //   icon: Icon(Icons.home_outlined, color: AppColors.primary),
+                  //   label: Text(
+                  //     "Trở về Trang chủ",
+                  //     style: TextStyle(
+                  //       color: AppColors.primary,
+                  //       fontSize: 16,
+                  //       fontWeight: FontWeight.w500,
+                  //     ),
+                  //   ),
+                  //   onPressed: isLoading
+                  //       ? null
+                  //       : () {
+                  //     context.go('/login');
+                  //   },
+                  // ),
                 ],
               ),
             );

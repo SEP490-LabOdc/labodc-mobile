@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart'; // Giữ lại nếu cần dùn
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import 'package:labodc_mobile/features/company/presentation/pages/company_detail_page.dart';
+import 'package:labodc_mobile/features/hiring_projects/presentation/pages/saved_projects_page.dart';
 import 'package:labodc_mobile/features/project_application/presentation/pages/my_applications_page.dart';
 import 'package:labodc_mobile/features/project_fund/presentation/pages/project_fund_page.dart';
 
@@ -28,7 +29,7 @@ import '../../features/auth/presentation/provider/auth_provider.dart';
 // Constants
 import '../../features/user_profile/data/models/user_profile_model.dart';
 import '../../features/user_profile/presentation/pages/edit_profile_page.dart';
-import '../../wallet/presentation/pages/transaction_history_page.dart';
+import '../../features/wallet/presentation/pages/transaction_history_page.dart';
 import '../get_it/get_it.dart';
 import 'route_constants.dart';
 
@@ -209,6 +210,13 @@ class AppRouter {
             final id = state.pathParameters['id'];
             if (id == null) return const SizedBox.shrink();
             return CompanyDetailPage(companyId: id);
+          },
+        ),
+        GoRoute(
+          path: Routes.savedProjects,
+          name: Routes.savedProjectsName,
+          builder: (context, state) {
+            return SavedProjectsPage();
           },
         ),
       ],

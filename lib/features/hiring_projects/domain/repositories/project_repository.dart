@@ -21,4 +21,10 @@ abstract class ProjectRepository {
   Future<Either<Failure, ProjectDetailModel>> getProjectDetail(String projectId);
 
   Future<Either<Failure, PaginatedProjectEntity>> searchProjects(SearchRequest request);
+
+  // Local database
+  Future<Either<Failure, void>> bookmarkProject(ProjectEntity project, String userId);
+  Future<Either<Failure, void>> unbookmarkProject(String projectId, String userId);
+  Future<Either<Failure, List<ProjectEntity>>> getBookmarkedProjects(String userId);
+  Future<bool> checkIsBookmarked(String projectId, String userId);
 }

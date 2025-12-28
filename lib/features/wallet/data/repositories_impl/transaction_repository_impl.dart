@@ -1,7 +1,8 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/error/failures.dart';
+import 'package:labodc_mobile/features/wallet/data/models/withdraw_request.dart';
+import '../../../../../core/error/failures.dart';
 
-import '../../../features/auth/data/token/auth_token_storage.dart';
+import '../../../auth/data/token/auth_token_storage.dart';
 import '../data_sources/transaction_remote_data_source.dart';
 import '../models/transaction_model.dart';
 import '../repositories/transaction_repository.dart';
@@ -35,6 +36,24 @@ class TransactionRepositoryImpl implements TransactionRepository {
       );
 
       return Right(transactions);
+    } on Failure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+
+  @override
+  Future<Either<Failure, bool>> withdraw(WithdrawRequest request) async {
+    try {
+      final token = await tokenStorage.getAccessToken();
+      if (token == null) {
+        return const Left(UnAuthorizedFailure("Phiên làm việc hết hạn. Vui lòng đăng nhập lại."));
+      }
+
+      final success = await remoteDataSource.withdraw(token, request);
+      return Right(success);
     } on Failure catch (e) {
       return Left(e);
     } catch (e) {

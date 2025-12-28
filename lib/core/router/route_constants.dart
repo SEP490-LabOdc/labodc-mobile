@@ -28,6 +28,9 @@ class Routes {
 
   static const String companyDetail = '/company-detail/:id';
 
+  static const String savedProjects = '/saved-projects';
+
+
 
   // Route names
   static const String splashName = 'splash';
@@ -56,6 +59,9 @@ class Routes {
   static const String transactionHistoryName = 'transaction-history';
 
   static const String companyDetailName = 'company-detail';
+
+  static const String savedProjectsName = 'saved-projects';
+
 
 
 

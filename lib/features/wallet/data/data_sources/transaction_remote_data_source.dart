@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart'; // Sử dụng debugPrint từ package này
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../../../../core/error/failures.dart';
-import '../../../../core/config/networks/config.dart';
+import '../../../../../core/error/failures.dart';
+import '../../../../../core/config/networks/config.dart';
 import '../models/transaction_model.dart';
 import '../models/wallet_model.dart';
+import '../models/withdraw_request.dart';
 
 class TransactionRemoteDataSource {
 
@@ -103,6 +104,30 @@ class TransactionRemoteDataSource {
         } else {
           throw InvalidInputFailure(jsonResponse['message'] ?? "Lỗi lấy thông tin ví");
         }
+      } else {
+        throw _handleResponseError(response);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> withdraw(String token, WithdrawRequest request) async {
+    final url = Uri.parse("${ApiConfig.baseUrl}/api/v1/wallets/withdraw");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['success'] == true;
       } else {
         throw _handleResponseError(response);
       }

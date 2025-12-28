@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../../../core/get_it/get_it.dart';
-import '../../../shared/widgets/reusable_card.dart';
+
+import '../../../../core/get_it/get_it.dart';
+import '../../../../shared/widgets/reusable_card.dart';
 import '../../data/models/transaction_model.dart';
 import '../bloc/transaction_history_cubit.dart';
 import '../bloc/transaction_history_state.dart';

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:labodc_mobile/features/project_fund/presentation/pages/project_fund_page.dart';
-import 'package:labodc_mobile/features/talent/presentation/pages/talent_report_page.dart';
 import 'package:labodc_mobile/features/user_profile/presentation/pages/profile_page.dart';
-import 'package:labodc_mobile/wallet/presentation/pages/my_wallet_page.dart';
-// import 'package:labodc_mobile/features/talent/presentation/pages/tasks_page.dart'; // Uncomment nếu dùng
 
 import '../../../notification/domain/entities/notification_entity.dart';
 import '../../../notification/websocket/cubit/websocket_notification_cubit.dart';
-import '../../../report/presentation/pages/report_page.dart';
+import '../../../wallet/presentation/pages/my_wallet_page.dart';
 import 'dashboard_page.dart';
 import 'explore_page.dart';
 
