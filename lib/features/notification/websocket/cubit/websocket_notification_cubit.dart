@@ -5,6 +5,7 @@ import '../../../../features/notification/data/models/notification_model.dart';
 import '../../../../features/notification/domain/entities/notification_entity.dart';
 import '../../data/repositories_impl/notification_repository_impl.dart';
 import '../../../../core/services/realtime/stomp_notification_service.dart';
+import '../../../../core/services/widget/notification_widget_service.dart';
 
 class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
   final NotificationRepositoryImpl repository;
@@ -14,10 +15,7 @@ class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
   StreamSubscription? _stompSub;
   String? _currentUserId;
 
-  WebSocketNotificationCubit(
-      this.repository,
-      this.stompService,
-      ) : super([]);
+  WebSocketNotificationCubit(this.repository, this.stompService) : super([]);
 
   Future<void> connect(String userId, String accessToken) async {
     // 1. Luôn load lại API khi hàm này được gọi (để đảm bảo data mới nhất)
@@ -62,25 +60,33 @@ class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
     final currentList = List<NotificationEntity>.of(state);
 
     // Kiểm tra trùng lặp (nếu mạng lag socket bắn 2 lần)
-    final isExist = currentList.any((e) => e.notificationRecipientId == notif.notificationRecipientId);
+    final isExist = currentList.any(
+      (e) => e.notificationRecipientId == notif.notificationRecipientId,
+    );
 
     if (!isExist) {
       // Thêm vào đầu danh sách
       currentList.insert(0, notif);
-      debugPrint("✅ [Cubit] Emitting new state with ${currentList.length} items");
+      debugPrint(
+        "✅ [Cubit] Emitting new state with ${currentList.length} items",
+      );
       emit(currentList);
+      _updateWidget(); // Update widget với notification mới
     }
   }
 
   Future<void> _fetchInitialNotifications(String userId, String token) async {
-    final result = await repository.fetchNotifications(userId: userId, token: token);
-    result.fold(
-          (failure) => debugPrint("❌ API Error: ${failure.message}"),
-          (data) {
-        debugPrint("📥 API Fetched ${data.length} items");
-        emit(data);
-      },
+    final result = await repository.fetchNotifications(
+      userId: userId,
+      token: token,
     );
+    result.fold((failure) => debugPrint("❌ API Error: ${failure.message}"), (
+      data,
+    ) {
+      debugPrint("📥 API Fetched ${data.length} items");
+      emit(data);
+      _updateWidget(); // Update widget sau khi fetch thành công
+    });
   }
 
   Future<void> markAsRead(String notificationRecipientId) async {
@@ -93,6 +99,7 @@ class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
         return n;
       }).toList();
       emit(updatedList);
+      _updateWidget(); // Update widget sau khi đánh dấu đã đọc
     } catch (e) {
       debugPrint("❌ Mark read error: $e");
     }
@@ -104,5 +111,12 @@ class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
     stompService.disconnect();
     _currentUserId = null;
     emit([]);
+    await NotificationWidgetService.reset(); // Reset widget khi disconnect
+  }
+
+  /// Update widget với số lượng thông báo chưa đọc hiện tại
+  Future<void> _updateWidget() async {
+    final unreadCount = state.where((n) => !n.readStatus).length;
+    await NotificationWidgetService.updateUnreadCount(unreadCount);
   }
 }

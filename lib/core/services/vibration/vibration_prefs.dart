@@ -1,32 +1,34 @@
 // lib/core/services/vibration/vibration_prefs.dart
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/storage/storage_service.dart';
 import 'vibration_model.dart';
 
 class VibrationPrefs {
   static const _kEnabledKey = 'vibration_enabled';
   static const _kTypeKey = 'vibration_type';
 
-  static Future<bool> getEnabled() async {
-    final sp = await SharedPreferences.getInstance();
-    return sp.getBool(_kEnabledKey) ?? true; // default: bật rung
+  final StorageService _storage;
+
+  VibrationPrefs(this._storage);
+
+  Future<bool> getEnabled() async {
+    return _storage.loadBool(_kEnabledKey) ?? true; // default: bật rung
   }
 
-  static Future<void> setEnabled(bool value) async {
-    final sp = await SharedPreferences.getInstance();
-    await sp.setBool(_kEnabledKey, value);
+  Future<void> setEnabled(bool value) async {
+    await _storage.saveBool(_kEnabledKey, value);
   }
 
-  static Future<VibrationType> getType() async {
-    final sp = await SharedPreferences.getInstance();
-    final raw = sp.getString(_kTypeKey);
+  Future<VibrationType> getType() async {
+    final raw = _storage.loadString(_kTypeKey);
+    if (raw == null) return VibrationType.pattern; // default
+
     return VibrationType.values.firstWhere(
-          (e) => e.name == raw,
-      orElse: () => VibrationType.pattern, // default: rung theo nhịp
+      (e) => e.name == raw,
+      orElse: () => VibrationType.pattern,
     );
   }
 
-  static Future<void> setType(VibrationType type) async {
-    final sp = await SharedPreferences.getInstance();
-    await sp.setString(_kTypeKey, type.name);
+  Future<void> setType(VibrationType type) async {
+    await _storage.saveString(_kTypeKey, type.name);
   }
 }

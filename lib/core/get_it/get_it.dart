@@ -2,6 +2,12 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Core Services
+import '../storage/storage_service.dart';
+import '../cache/cache_manager.dart';
+import '../services/vibration/vibration_cubit.dart';
+import '../services/vibration/vibration_prefs.dart';
+
 // Hiring Projects
 import 'package:labodc_mobile/features/hiring_projects/presentation/cubit/related_projects_preview_cubit.dart';
 import '../../features/company/domain/use_cases/get_company_detail_use_case.dart';
@@ -20,7 +26,8 @@ import '../../features/hiring_projects/presentation/cubit/search_projects_cubit.
 // Project Application
 import '../../features/milestone/data/data_sources/milestone_remote_data_source.dart';
 // Lưu ý: Kiểm tra lại import này nếu có xung đột tên với ProjectRepositoryImpl của Hiring Projects
-import '../../features/milestone/data/repositories/project_repository_impl.dart' as milestone_repo;
+import '../../features/milestone/data/repositories/project_repository_impl.dart'
+    as milestone_repo;
 import '../../features/milestone/domain/repositories/milestone_repository.dart';
 import '../../features/milestone/presentation/cubit/disbursement_cubit.dart';
 import '../../features/milestone/presentation/cubit/milestone_cubit.dart';
@@ -112,98 +119,109 @@ final getIt = GetIt.instance;
 
 Future<void> init() async {
   // ---------------------------------------------------------------------------
-  // 1. External & Core (SharedPreferences, Http)
+  // 1. External & Core (SharedPreferences, Http, Storage, Cache)
   // ---------------------------------------------------------------------------
   final sharedPrefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(sharedPrefs);
   getIt.registerLazySingleton<http.Client>(() => http.Client());
 
+  // Register Storage Service (type-safe wrapper for SharedPreferences)
+  getIt.registerLazySingleton(() => StorageService(getIt<SharedPreferences>()));
+
+  // Register Cache Managers for different data types
+  getIt.registerLazySingleton(() => CacheManager<List<dynamic>>(maxSize: 50));
+  getIt.registerLazySingleton(
+    () => CacheManager<Map<String, dynamic>>(maxSize: 100),
+  );
+
   // ---------------------------------------------------------------------------
   // 2. Auth
   // ---------------------------------------------------------------------------
-  getIt.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSource());
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSource(),
+  );
   getIt.registerLazySingleton<AuthTokenStorage>(() => AuthTokenStorage());
   getIt.registerLazySingleton<AuthRepository>(
-        () => AuthRepositoryImpl(
+    () => AuthRepositoryImpl(
       remoteDataSource: getIt<AuthRemoteDataSource>(),
       tokenStorage: getIt<AuthTokenStorage>(),
     ),
   );
   getIt.registerLazySingleton<LoginUseCase>(
-        () => LoginUseCase(getIt<AuthRepository>()),
+    () => LoginUseCase(getIt<AuthRepository>()),
   );
 
   // ---------------------------------------------------------------------------
   // 3. Hiring Projects (Đã gộp - Không đăng ký trùng lặp)
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<ProjectLocalDataSource>(
-        () => ProjectLocalDataSourceImpl(),
+    () => ProjectLocalDataSourceImpl(),
   );
 
   getIt.registerLazySingleton<ProjectRemoteDataSource>(
-        () => ProjectRemoteDataSourceImpl(
+    () => ProjectRemoteDataSourceImpl(
       getIt<http.Client>(),
       getIt<AuthRepository>(),
     ),
   );
 
   getIt.registerLazySingleton<ProjectRepository>(
-        () => ProjectRepositoryImpl(
+    () => ProjectRepositoryImpl(
       getIt<ProjectRemoteDataSource>(),
       getIt<ProjectLocalDataSource>(),
     ),
   );
 
   getIt.registerLazySingleton<GetHiringProjects>(
-        () => GetHiringProjects(getIt<ProjectRepository>()),
+    () => GetHiringProjects(getIt<ProjectRepository>()),
   );
 
   getIt.registerLazySingleton<SearchProjects>(
-        () => SearchProjects(getIt<ProjectRepository>()),
+    () => SearchProjects(getIt<ProjectRepository>()),
   );
 
   getIt.registerFactory<HiringProjectsCubit>(
-        () => HiringProjectsCubit(getIt<GetHiringProjects>()),
+    () => HiringProjectsCubit(getIt<GetHiringProjects>()),
   );
 
   getIt.registerFactory<SearchProjectsCubit>(
-        () => SearchProjectsCubit(getIt<SearchProjects>()),
+    () => SearchProjectsCubit(getIt<SearchProjects>()),
   );
 
   getIt.registerFactory<RelatedProjectsPreviewCubit>(
-        () => RelatedProjectsPreviewCubit(repository: getIt<ProjectRepository>()),
+    () => RelatedProjectsPreviewCubit(repository: getIt<ProjectRepository>()),
   );
 
   getIt.registerFactory<BookmarkProjectsCubit>(
-        () => BookmarkProjectsCubit(getIt<ProjectRepository>()),
+    () => BookmarkProjectsCubit(getIt<ProjectRepository>()),
   );
 
   // ---------------------------------------------------------------------------
   // 4. Notification & Websocket
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<NotificationRemoteDataSource>(
-        () => NotificationRemoteDataSource(),
+    () => NotificationRemoteDataSource(),
   );
   getIt.registerLazySingleton<NotificationRepositoryImpl>(
-        () => NotificationRepositoryImpl(remoteDataSource: getIt()),
+    () => NotificationRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerLazySingleton<NotificationRepository>(
-        () => getIt<NotificationRepositoryImpl>(),
+    () => getIt<NotificationRepositoryImpl>(),
   );
   getIt.registerLazySingleton<StompNotificationService>(
-        () => StompNotificationService(),
+    () => StompNotificationService(),
   );
   getIt.registerLazySingleton<WebSocketNotificationCubit>(
-        () => WebSocketNotificationCubit(
+    () => WebSocketNotificationCubit(
       getIt<NotificationRepositoryImpl>(),
       getIt<StompNotificationService>(),
     ),
   );
   getIt.registerLazySingleton<GetNotificationsUseCase>(
-        () => GetNotificationsUseCase(getIt<NotificationRepository>()),
+    () => GetNotificationsUseCase(getIt<NotificationRepository>()),
   );
   getIt.registerLazySingleton<RegisterDeviceTokenUseCase>(
-        () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
+    () => RegisterDeviceTokenUseCase(getIt<NotificationRepository>()),
   );
 
   // ---------------------------------------------------------------------------
@@ -216,37 +234,40 @@ Future<void> init() async {
   getIt.registerSingleton(GetThemeUseCase(themeRepository: getIt()));
   getIt.registerSingleton(SaveThemeUseCase(themeRepository: getIt()));
   getIt.registerFactory(
-        () => ThemeBloc(
-      getThemeUseCase: getIt(),
-      saveThemeUseCase: getIt(),
-    ),
+    () => ThemeBloc(getThemeUseCase: getIt(), saveThemeUseCase: getIt()),
   );
+
+  // Vibration Services
+  getIt.registerLazySingleton(() => VibrationPrefs(getIt<StorageService>()));
+  getIt.registerFactory(() => VibrationCubit(getIt<VibrationPrefs>()));
 
   // ---------------------------------------------------------------------------
   // 6. User & User Profile
   // ---------------------------------------------------------------------------
-  getIt.registerLazySingleton<UserRemoteDataSource>(() => UserRemoteDataSource());
+  getIt.registerLazySingleton<UserRemoteDataSource>(
+    () => UserRemoteDataSource(),
+  );
   getIt.registerLazySingleton<UserRepository>(
-        () => UserRepositoryImpl(remoteDataSource: getIt()),
+    () => UserRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerLazySingleton<GetUserProfile>(
-        () => GetUserProfile(getIt<UserRepository>()),
+    () => GetUserProfile(getIt<UserRepository>()),
   );
 
   getIt.registerLazySingleton<UserProfileRemoteDataSource>(
-        () => UserProfileRemoteDataSourceImpl(
+    () => UserProfileRemoteDataSourceImpl(
       client: getIt<http.Client>(),
       authRepository: getIt<AuthRepository>(),
     ),
   );
   getIt.registerLazySingleton<UserProfileRepository>(
-        () => UserProfileRepositoryImpl(remoteDataSource: getIt()),
+    () => UserProfileRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerLazySingleton<UpdateUserProfileUseCase>(
-        () => UpdateUserProfileUseCase(getIt<UserProfileRepository>()),
+    () => UpdateUserProfileUseCase(getIt<UserProfileRepository>()),
   );
   getIt.registerFactory<UserProfileCubit>(
-        () => UserProfileCubit(
+    () => UserProfileCubit(
       repository: getIt(),
       userId: getIt<AuthProvider>().userId,
     ),
@@ -255,15 +276,17 @@ Future<void> init() async {
   // ---------------------------------------------------------------------------
   // 7. Talent
   // ---------------------------------------------------------------------------
-  getIt.registerLazySingleton<TalentRemoteDataSource>(() => TalentRemoteDataSource());
+  getIt.registerLazySingleton<TalentRemoteDataSource>(
+    () => TalentRemoteDataSource(),
+  );
   getIt.registerLazySingleton<TalentRepository>(
-        () => TalentRepositoryImpl(remoteDataSource: getIt()),
+    () => TalentRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerLazySingleton<GetTalentProfile>(
-        () => GetTalentProfile(getIt<TalentRepository>()),
+    () => GetTalentProfile(getIt<TalentRepository>()),
   );
   getIt.registerFactoryParam<TalentProfileCubit, AuthProvider, void>(
-        (authProvider, _) => TalentProfileCubit(
+    (authProvider, _) => TalentProfileCubit(
       getTalentProfile: getIt<GetTalentProfile>(),
       authProvider: authProvider,
     ),
@@ -273,92 +296,90 @@ Future<void> init() async {
   // 8. Project Application
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<ProjectApplicationRemoteDataSource>(
-        () => ProjectApplicationRemoteDataSourceImpl(
+    () => ProjectApplicationRemoteDataSourceImpl(
       client: getIt<http.Client>(),
       authRepository: getIt<AuthRepository>(),
     ),
   );
   getIt.registerLazySingleton<ProjectApplicationRepository>(
-        () => ProjectApplicationRepositoryImpl(remoteDataSource: getIt()),
+    () => ProjectApplicationRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerLazySingleton<GetMySubmittedCvsUseCase>(
-        () => GetMySubmittedCvsUseCase(repository: getIt()),
+    () => GetMySubmittedCvsUseCase(repository: getIt()),
   );
   getIt.registerLazySingleton<ApplyProjectUseCase>(
-        () => ApplyProjectUseCase(
+    () => ApplyProjectUseCase(
       repository: getIt(),
       authRepository: getIt<AuthRepository>(),
     ),
   );
   getIt.registerLazySingleton<UploadCvUseCase>(
-        () => UploadCvUseCase(repository: getIt()),
+    () => UploadCvUseCase(repository: getIt()),
   );
   getIt.registerFactory<ProjectApplicationCubit>(
-        () => ProjectApplicationCubit(
+    () => ProjectApplicationCubit(
       getCvsUseCase: getIt(),
       applyProjectUseCase: getIt(),
       uploadCvUseCase: getIt(),
     ),
   );
   getIt.registerFactoryParam<ProjectDocumentsCubit, String, void>(
-        (projectId, _) => ProjectDocumentsCubit(getIt<ProjectApplicationRepository>()),
+    (projectId, _) =>
+        ProjectDocumentsCubit(getIt<ProjectApplicationRepository>()),
   );
   getIt.registerFactory<MyApplicationsCubit>(
-        () => MyApplicationsCubit(
-      repository: getIt<ProjectApplicationRepository>(),
-    ),
+    () =>
+        MyApplicationsCubit(repository: getIt<ProjectApplicationRepository>()),
   );
 
   // ---------------------------------------------------------------------------
   // 9. Report
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<ReportRemoteDataSource>(
-        () => ReportRemoteDataSourceImpl(
+    () => ReportRemoteDataSourceImpl(
       client: getIt<http.Client>(),
       authRepository: getIt<AuthRepository>(),
     ),
   );
   getIt.registerLazySingleton<ReportRepository>(
-        () => ReportRepositoryImpl(remote: getIt()),
+    () => ReportRepositoryImpl(remote: getIt()),
   );
   getIt.registerFactoryParam<ReportCubit, bool, void>(
-        (isSent, _) => ReportCubit(
-      repository: getIt<ReportRepository>(),
-      isSent: isSent,
-    ),
+    (isSent, _) =>
+        ReportCubit(repository: getIt<ReportRepository>(), isSent: isSent),
   );
 
   // ---------------------------------------------------------------------------
   // 10. Milestone
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<MilestoneRemoteDataSource>(
-        () => MilestoneRemoteDataSourceImpl(
-      client: getIt(),
-      authRepository: getIt(),
-    ),
+    () =>
+        MilestoneRemoteDataSourceImpl(client: getIt(), authRepository: getIt()),
   );
   getIt.registerLazySingleton<MilestoneRepository>(
-        () => milestone_repo.MilestoneRepositoryImpl(remoteDataSource: getIt()),
+    () => milestone_repo.MilestoneRepositoryImpl(remoteDataSource: getIt()),
   );
   getIt.registerFactory<MilestoneCubit>(
-        () => MilestoneCubit(getIt<MilestoneRepository>()),
+    () => MilestoneCubit(getIt<MilestoneRepository>()),
   );
   getIt.registerFactoryParam<MilestoneReportsCubit, String, void>(
-        (milestoneId, _) => MilestoneReportsCubit(getIt<ReportRepository>()),
+    (milestoneId, _) => MilestoneReportsCubit(getIt<ReportRepository>()),
   );
   getIt.registerFactory<MilestoneDetailCubit>(
-        () => MilestoneDetailCubit(getIt<MilestoneRepository>()),
+    () => MilestoneDetailCubit(getIt<MilestoneRepository>()),
   );
   getIt.registerFactoryParam<MilestoneDocumentsCubit, String, void>(
-        (milestoneId, _) => MilestoneDocumentsCubit(getIt<MilestoneRepository>()),
+    (milestoneId, _) => MilestoneDocumentsCubit(getIt<MilestoneRepository>()),
   );
-  getIt.registerFactory(() => DisbursementCubit(repository: getIt<MilestoneRepository>()));
+  getIt.registerFactory(
+    () => DisbursementCubit(repository: getIt<MilestoneRepository>()),
+  );
 
   // ---------------------------------------------------------------------------
   // 11. Project Fund Management
   // ---------------------------------------------------------------------------
   getIt.registerFactory<ProjectFundCubit>(
-        () => ProjectFundCubit(
+    () => ProjectFundCubit(
       projectApplicationRepository: getIt<ProjectApplicationRepository>(),
       milestoneRepository: getIt<MilestoneRepository>(),
     ),
@@ -368,56 +389,62 @@ Future<void> init() async {
   // 12. Company
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<CompanyRemoteDataSource>(
-        () => CompanyRemoteDataSourceImpl(
+    () => CompanyRemoteDataSourceImpl(
       getIt<http.Client>(),
       getIt<AuthRepository>(),
     ),
   );
   getIt.registerLazySingleton<CompanyRepository>(
-        () => CompanyRepositoryImpl(getIt<CompanyRemoteDataSource>()),
+    () => CompanyRepositoryImpl(getIt<CompanyRemoteDataSource>()),
   );
   getIt.registerLazySingleton<GetActiveCompaniesUseCase>(
-        () => GetActiveCompaniesUseCase(getIt<CompanyRepository>()),
+    () => GetActiveCompaniesUseCase(getIt<CompanyRepository>()),
   );
   getIt.registerLazySingleton<SearchCompanies>(
-        () => SearchCompanies(getIt<CompanyRepository>()),
+    () => SearchCompanies(getIt<CompanyRepository>()),
   );
   getIt.registerFactory<CompanyCubit>(
-        () => CompanyCubit(getActiveCompaniesUseCase: getIt<GetActiveCompaniesUseCase>()),
+    () => CompanyCubit(
+      getActiveCompaniesUseCase: getIt<GetActiveCompaniesUseCase>(),
+    ),
   );
   getIt.registerFactory<SearchCompaniesCubit>(
-        () => SearchCompaniesCubit(getIt<SearchCompanies>()),
+    () => SearchCompaniesCubit(getIt<SearchCompanies>()),
   );
   getIt.registerLazySingleton<GetCompanyDetailUseCase>(
-        () => GetCompanyDetailUseCase(getIt<CompanyRepository>()),
+    () => GetCompanyDetailUseCase(getIt<CompanyRepository>()),
   );
   getIt.registerFactory<CompanyDetailCubit>(
-        () => CompanyDetailCubit(getCompanyDetailUseCase: getIt<GetCompanyDetailUseCase>()),
+    () => CompanyDetailCubit(
+      getCompanyDetailUseCase: getIt<GetCompanyDetailUseCase>(),
+    ),
   );
-  getIt.registerFactory(() => CompanyProjectsCubit(repository: getIt<CompanyRepository>()));
+  getIt.registerFactory(
+    () => CompanyProjectsCubit(repository: getIt<CompanyRepository>()),
+  );
 
   // ---------------------------------------------------------------------------
   // 13. Transaction & Wallet
   // ---------------------------------------------------------------------------
   getIt.registerLazySingleton<TransactionRemoteDataSource>(
-        () => TransactionRemoteDataSource(),
+    () => TransactionRemoteDataSource(),
   );
   getIt.registerLazySingleton<TransactionRepository>(
-        () => TransactionRepositoryImpl(
+    () => TransactionRepositoryImpl(
       remoteDataSource: getIt<TransactionRemoteDataSource>(),
       tokenStorage: getIt<AuthTokenStorage>(),
     ),
   );
   getIt.registerLazySingleton<WalletRepository>(
-        () => WalletRepositoryImpl(
+    () => WalletRepositoryImpl(
       remoteDataSource: getIt<TransactionRemoteDataSource>(),
       tokenStorage: getIt<AuthTokenStorage>(),
     ),
   );
   getIt.registerFactory<TransactionHistoryCubit>(
-        () => TransactionHistoryCubit(getIt<TransactionRepository>()),
+    () => TransactionHistoryCubit(getIt<TransactionRepository>()),
   );
   getIt.registerFactory<WalletCubit>(
-        () => WalletCubit(getIt<WalletRepository>()),
+    () => WalletCubit(getIt<WalletRepository>()),
   );
 }

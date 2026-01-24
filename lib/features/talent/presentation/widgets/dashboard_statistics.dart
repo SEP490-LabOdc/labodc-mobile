@@ -44,21 +44,6 @@ class DashboardStatistics extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Tổng quan",
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildStatItem(context, "3", "Dự án đang làm", Icons.work, Colors.blue),
-            const SizedBox(width: 12),
-            _buildStatItem(context, "120M", "Thu nhập", Icons.monetization_on, Colors.green),
-            const SizedBox(width: 12),
-            _buildStatItem(context, "4.8", "Đánh giá", Icons.star, Colors.orange),
-          ],
-        ),
-        const SizedBox(height: 16),
         _buildQuickAccessCard(
           context,
           title: "Đơn ứng tuyển của tôi",

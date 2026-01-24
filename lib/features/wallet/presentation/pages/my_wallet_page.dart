@@ -11,6 +11,7 @@ import '../../../auth/presentation/provider/auth_provider.dart';
 import '../bloc/wallet_cubit.dart';
 import '../bloc/wallet_state.dart';
 import '../widgets/withdraw_modal.dart';
+import '../widgets/bank_setup_modal.dart';
 
 class MyWalletPage extends StatelessWidget {
   const MyWalletPage({super.key});
@@ -28,25 +29,47 @@ class MyWalletPage extends StatelessWidget {
 class _MyWalletView extends StatelessWidget {
   const _MyWalletView();
 
-  // Hàm helper hiển thị Modal rút tiền chuyên nghiệp
-  void _showWithdrawModal(BuildContext context) {
+  // Show bank setup modal for first-time setup
+  void _showBankSetupModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Cho phép modal đẩy lên khi hiện bàn phím
-      backgroundColor: Colors.transparent, // Làm bo góc mượt mà hơn
+      isScrollControlled: true,
       builder: (modalContext) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: BlocProvider.value(
-            value: context.read<WalletCubit>(),
-            child: const WithdrawModal(),
-          ),
+        return BlocProvider.value(
+          value: context.read<WalletCubit>(),
+          child: const BankSetupModal(),
         );
       },
     );
+  }
+
+  // Hàm helper hiển thị Modal rút tiền - check bank info trước
+  void _showWithdrawModal(BuildContext context) {
+    final state = context.read<WalletCubit>().state;
+
+    // Check if bank info exists
+    if (state is WalletLoaded) {
+      if (!state.wallet.hasBankInfo) {
+        // No bank info -> show setup modal first
+        _showBankSetupModal(context);
+        return;
+      }
+
+      // Has bank info -> show withdraw modal
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (modalContext) {
+          return BlocProvider.value(
+            value: context.read<WalletCubit>(),
+            child: WithdrawModal(
+              bankInfo: state.wallet.primaryBank!,
+              availableBalance: state.wallet.balance,
+            ),
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -67,7 +90,7 @@ class _MyWalletView extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => context.pushNamed(Routes.transactionHistoryName),
-          )
+          ),
         ],
       ),
       // BlocListener lắng nghe các sự kiện để hiện thông báo SnackBar
@@ -103,7 +126,11 @@ class _MyWalletView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(state.message),
                     const SizedBox(height: 16),
@@ -142,13 +169,19 @@ class _MyWalletView extends StatelessWidget {
                       // Card Tổng quan Ví
                       ReusableCard(
                         padding: const EdgeInsets.all(20),
-                        border: Border.all(color: primaryTeal.withOpacity(0.5), width: 1.5),
+                        border: Border.all(
+                          color: primaryTeal.withOpacity(0.5),
+                          width: 1.5,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.account_balance_wallet_rounded, color: primaryTeal),
+                                const Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: primaryTeal,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   "Tổng quan Ví",
@@ -160,7 +193,10 @@ class _MyWalletView extends StatelessWidget {
                             ),
                             const SizedBox(height: 20),
 
-                            _buildDarkBalanceCard(currencyFormat.format(totalBalance)),
+                            _buildDarkBalanceCard(
+                              currencyFormat.format(totalBalance),
+                              theme,
+                            ),
                             const SizedBox(height: 20),
 
                             Row(
@@ -169,7 +205,9 @@ class _MyWalletView extends StatelessWidget {
                                   child: _buildSubBalanceCard(
                                     theme,
                                     label: "Khả dụng",
-                                    amount: currencyFormat.format(wallet.balance),
+                                    amount: currencyFormat.format(
+                                      wallet.balance,
+                                    ),
                                     subText: "Có thể rút ngay",
                                     color: Colors.green,
                                     icon: Icons.check_circle_outline,
@@ -180,7 +218,9 @@ class _MyWalletView extends StatelessWidget {
                                   child: _buildSubBalanceCard(
                                     theme,
                                     label: "Đang chờ",
-                                    amount: currencyFormat.format(wallet.heldBalance),
+                                    amount: currencyFormat.format(
+                                      wallet.heldBalance,
+                                    ),
                                     subText: "Đang xử lý",
                                     color: Colors.orange,
                                     icon: Icons.hourglass_empty_rounded,
@@ -199,8 +239,11 @@ class _MyWalletView extends StatelessWidget {
                                     icon: Icons.payments_rounded,
                                     isPrimary: true,
                                     color: primaryTeal,
+                                    theme: theme,
                                     // Chỉ cho nhấn nếu có tiền, ngược lại nút sẽ tự xám (disabled)
-                                    onTap: canWithdraw ? () => _showWithdrawModal(context) : null,
+                                    onTap: canWithdraw
+                                        ? () => _showWithdrawModal(context)
+                                        : null,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -210,16 +253,15 @@ class _MyWalletView extends StatelessWidget {
                                     icon: Icons.credit_card_rounded,
                                     isPrimary: false,
                                     color: primaryTeal,
-                                    onTap: () {
-                                      // Logic quản lý ngân hàng nếu có
-                                    },
+                                    theme: theme,
+                                    onTap: () => _showBankSetupModal(context),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 20),
 
-                            _buildSmartNote(wallet.balance.toDouble()),
+                            _buildSmartNote(wallet.balance.toDouble(), theme),
                           ],
                         ),
                       ),
@@ -242,6 +284,7 @@ class _MyWalletView extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final userName = authProvider.currentUser?.fullName ?? "Người dùng";
     final userRole = authProvider.currentUser?.role ?? "Vai trò";
+    final isDark = theme.brightness == Brightness.dark;
 
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -251,28 +294,42 @@ class _MyWalletView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: theme.colorScheme.primary.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             userName,
             style: TextStyle(
-              color: Colors.blue.shade700,
+              color: isDark
+                  ? theme.colorScheme.primary.withOpacity(0.9)
+                  : theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
           ),
         ),
         const SizedBox(width: 8),
-        Text(userRole, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+        Text(
+          userRole,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDarkBalanceCard(String amount) {
+  Widget _buildDarkBalanceCard(String amount, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return ReusableCard(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF264653), Color(0xFF2A9D8F)],
+      gradient: LinearGradient(
+        colors: isDark
+            ? [
+                const Color(0xFF1A3A3A),
+                const Color(0xFF1F5F5F),
+              ] // Darker variant for dark mode
+            : [const Color(0xFF264653), const Color(0xFF2A9D8F)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -283,21 +340,35 @@ class _MyWalletView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Tổng số dư tài khoản", style: TextStyle(color: Colors.white70, fontSize: 13)),
-              Icon(Icons.security, color: Colors.white.withOpacity(0.5), size: 18),
+              const Text(
+                "Tổng số dư tài khoản",
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              Icon(
+                Icons.security,
+                color: Colors.white.withOpacity(0.5),
+                size: 18,
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             amount,
-            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           const Row(
             children: [
               Icon(Icons.circle, size: 8, color: Colors.greenAccent),
               SizedBox(width: 6),
-              Text("Ví đang hoạt động", style: TextStyle(color: Colors.white, fontSize: 12)),
+              Text(
+                "Ví đang hoạt động",
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
             ],
           ),
         ],
@@ -305,8 +376,14 @@ class _MyWalletView extends StatelessWidget {
     );
   }
 
-  Widget _buildSubBalanceCard(ThemeData theme,
-      {required String label, required String amount, required String subText, required Color color, required IconData icon}) {
+  Widget _buildSubBalanceCard(
+    ThemeData theme, {
+    required String label,
+    required String amount,
+    required String subText,
+    required Color color,
+    required IconData icon,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -321,20 +398,47 @@ class _MyWalletView extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: color),
               const SizedBox(width: 6),
-              Text(label, style: TextStyle(color: theme.hintColor, fontWeight: FontWeight.bold, fontSize: 12)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: theme.hintColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(amount, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            amount,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(subText, style: TextStyle(color: color.withOpacity(0.6), fontSize: 10)),
+          Text(
+            subText,
+            style: TextStyle(color: color.withOpacity(0.6), fontSize: 10),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton({required String label, required IconData icon, required bool isPrimary, required Color color, VoidCallback? onTap}) {
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required bool isPrimary,
+    required Color color,
+    required ThemeData theme,
+    VoidCallback? onTap,
+  }) {
     final bool isDisabled = onTap == null;
+    final isDark = theme.brightness == Brightness.dark;
+    final disabledColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -343,9 +447,11 @@ class _MyWalletView extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: isPrimary ? (isDisabled ? Colors.grey.shade300 : color) : Colors.transparent,
+            color: isPrimary
+                ? (isDisabled ? disabledColor : color)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isDisabled ? Colors.grey.shade300 : color),
+            border: Border.all(color: isDisabled ? disabledColor : color),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -366,26 +472,44 @@ class _MyWalletView extends StatelessWidget {
     );
   }
 
-  Widget _buildSmartNote(double balance) {
+  Widget _buildSmartNote(double balance, ThemeData theme) {
     final isZero = balance <= 0;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgColor = isZero
+        ? (isDark ? Colors.orange.withOpacity(0.15) : Colors.orange.shade50)
+        : (isDark ? Colors.blue.withOpacity(0.15) : Colors.blue.shade50);
+
+    final borderColor = isZero
+        ? (isDark ? Colors.orange.withOpacity(0.3) : Colors.orange.shade100)
+        : (isDark ? Colors.blue.withOpacity(0.3) : Colors.blue.shade100);
+
+    final textColor = isZero
+        ? (isDark ? Colors.orange.shade200 : Colors.orange.shade900)
+        : (isDark ? Colors.blue.shade200 : Colors.blue.shade900);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isZero ? Colors.orange.shade50 : Colors.blue.shade50,
+        color: bgColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isZero ? Colors.orange.shade100 : Colors.blue.shade100),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(isZero ? Icons.warning_amber_rounded : Icons.info_outline, color: isZero ? Colors.orange : Colors.blue, size: 20),
+          Icon(
+            isZero ? Icons.warning_amber_rounded : Icons.info_outline,
+            color: isZero ? Colors.orange : Colors.blue,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               isZero
                   ? "Bạn chưa có số dư khả dụng để rút tiền. Hãy hoàn thành các Milestone để nhận thanh toán."
                   : "Số dư khả dụng của bạn đã sẵn sàng. Bạn có thể thực hiện lệnh rút tiền về ngân hàng đã liên kết.",
-              style: TextStyle(color: isZero ? Colors.orange.shade900 : Colors.blue.shade900, fontSize: 12),
+              style: TextStyle(color: textColor, fontSize: 12),
             ),
           ),
         ],

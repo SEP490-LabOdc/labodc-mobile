@@ -25,13 +25,12 @@ class _SettingPageState extends State<SettingPage> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final themeBloc = context.read<ThemeBloc>();
-    final isDark = context.watch<ThemeBloc>().state.themeEntity?.themeType == ThemeType.dark;
+    final isDark =
+        context.watch<ThemeBloc>().state.themeEntity?.themeType ==
+        ThemeType.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Cài đặt"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Cài đặt"), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -67,21 +66,27 @@ class _SettingPageState extends State<SettingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.vibration),
-                        SizedBox(width: 12),
-                        Text("Cài đặt rung"),
+                        const Row(
+                          children: [
+                            Icon(Icons.vibration),
+                            SizedBox(width: 12),
+                            Text("Bật rung"),
+                          ],
+                        ),
+                        CupertinoSwitch(
+                          value: state.enabled,
+                          onChanged: (v) => cubit.setEnabled(v),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: const Text("Bật rung"),
-                      value: state.enabled,
-                      onChanged: (v) => cubit.setEnabled(v),
-                    ),
+
                     if (state.enabled) ...[
+                      const SizedBox(height: 16),
                       const Divider(),
+                      const SizedBox(height: 8),
                       const Text(
                         "Kiểu rung:",
                         style: TextStyle(fontWeight: FontWeight.bold),
@@ -89,13 +94,33 @@ class _SettingPageState extends State<SettingPage> {
                       const SizedBox(height: 4),
                       Column(
                         children: [
-                          _vibrationOption(context, state, VibrationType.light, "Rung nhẹ"),
-                          _vibrationOption(context, state, VibrationType.medium, "Rung vừa"),
-                          _vibrationOption(context, state, VibrationType.strong, "Rung mạnh"),
-                          _vibrationOption(context, state, VibrationType.pattern, "Rung theo nhịp"),
+                          _vibrationOption(
+                            context,
+                            state,
+                            VibrationType.light,
+                            "Rung nhẹ",
+                          ),
+                          _vibrationOption(
+                            context,
+                            state,
+                            VibrationType.medium,
+                            "Rung vừa",
+                          ),
+                          _vibrationOption(
+                            context,
+                            state,
+                            VibrationType.strong,
+                            "Rung mạnh",
+                          ),
+                          _vibrationOption(
+                            context,
+                            state,
+                            VibrationType.pattern,
+                            "Rung theo nhịp",
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Center(
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.play_arrow),
@@ -149,7 +174,11 @@ class _SettingPageState extends State<SettingPage> {
 
   /// Widget chọn kiểu rung
   Widget _vibrationOption(
-      BuildContext context, VibrationState state, VibrationType type, String label) {
+    BuildContext context,
+    VibrationState state,
+    VibrationType type,
+    String label,
+  ) {
     final cubit = context.read<VibrationCubit>();
     return RadioListTile<VibrationType>(
       title: Text(label),

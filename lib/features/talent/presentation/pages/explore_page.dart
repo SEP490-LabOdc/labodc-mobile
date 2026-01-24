@@ -29,9 +29,10 @@ class ExplorePage extends StatefulWidget {
   State<ExplorePage> createState() => _ExplorePageState();
 }
 
-class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin {
+class _ExplorePageState extends State<ExplorePage>
+    with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  final List<String> _popularFilters = ['Flutter', 'Backend', 'UI/UX', 'Marketing', 'Content'];
+  final ScrollController _scrollController = ScrollController();
 
   late TabController _tabController;
   late SearchProjectsCubit _searchProjectsCubit;
@@ -39,6 +40,7 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
 
   String _currentSearchQuery = '';
   Timer? _debounce;
+  bool _isLoadingMore = false;
 
   // Trạng thái sắp xếp: DESC = Mới nhất, ASC = Cũ nhất
   String _sortDirection = 'DESC';
@@ -50,15 +52,56 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
     _searchProjectsCubit = getIt<SearchProjectsCubit>();
     _searchCompaniesCubit = getIt<SearchCompaniesCubit>();
     _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
+  }
+
+  // Auto-pagination when scroll near bottom
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
+      if (!_isLoadingMore && _currentSearchQuery.isNotEmpty) {
+        _loadMoreResults();
+      }
+    }
+  }
+
+  void _loadMoreResults() {
+    setState(() => _isLoadingMore = true);
+    final currentTab = _tabController.index;
+    if (currentTab == 0) {
+      // Load more projects
+      final state = _searchProjectsCubit.state;
+      if (state is SearchLoaded && state.hasNext) {
+        _searchProjectsCubit.loadMore(
+          _currentSearchQuery,
+          state.currentPage,
+          10,
+        );
+      }
+    } else {
+      // Load more companies
+      final state = _searchCompaniesCubit.state;
+      if (state is SearchLoaded && state.hasNext) {
+        _searchCompaniesCubit.loadMore(
+          _currentSearchQuery,
+          state.currentPage,
+          10,
+        );
+      }
+    }
+    setState(() => _isLoadingMore = false);
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     _tabController.dispose();
-    _searchProjectsCubit.close();
-    _searchCompaniesCubit.close();
+    // ✅ FIXED: Don't close singleton cubits from GetIt!
+    // They're shared across app, closing them causes crashes
+    // _searchProjectsCubit.close(); // ❌ REMOVED
+    // _searchCompaniesCubit.close(); // ❌ REMOVED
     super.dispose();
   }
 
@@ -76,7 +119,9 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
   void _triggerSearch(String query) {
     if (query.isNotEmpty) {
       // Convert string direction to SortDirection enum
-      final direction = _sortDirection == 'DESC' ? SortDirection.desc : SortDirection.asc;
+      final direction = _sortDirection == 'DESC'
+          ? SortDirection.desc
+          : SortDirection.asc;
       _searchProjectsCubit.search(query, direction: direction);
       _searchCompaniesCubit.search(query, direction: direction);
     } else {
@@ -102,15 +147,19 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
     return MultiBlocProvider(
       providers: [
         BlocProvider<HiringProjectsCubit>(
-          create: (context) => getIt<HiringProjectsCubit>()..loadInitialProjects(),
+          create: (context) =>
+              getIt<HiringProjectsCubit>()..loadInitialProjects(),
         ),
         BlocProvider<SearchProjectsCubit>.value(value: _searchProjectsCubit),
         BlocProvider<SearchCompaniesCubit>.value(value: _searchCompaniesCubit),
       ],
       child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text('Khám phá', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Khám phá',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           backgroundColor: theme.colorScheme.primary,
           foregroundColor: theme.colorScheme.onPrimary,
           elevation: 0,
@@ -132,7 +181,7 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
   Widget _buildSearchBar(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      color: Colors.white,
+      color: theme.cardColor,
       child: Row(
         children: [
           // Thanh tìm kiếm
@@ -140,26 +189,53 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: theme.brightness == Brightness.dark
+                    ? theme.colorScheme.surface
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: theme.dividerColor),
               ),
-              child: TextField(
-                controller: _searchController,
-                textAlignVertical: TextAlignVertical.center,
-                decoration: InputDecoration(
-                  hintText: "Tìm kiếm dự án, công ty...",
-                  hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: theme.primaryColor, size: 22),
-                  suffixIcon: _currentSearchQuery.isNotEmpty
-                      ? IconButton(
-                    icon: const Icon(Icons.clear, size: 18),
-                    onPressed: () {
-                      _searchController.clear();
-                    },
-                  ): null,
-                  border: InputBorder.none,
-                ),
+              child: BlocBuilder<SearchProjectsCubit, SearchState>(
+                builder: (context, state) {
+                  final isLoading = state is SearchLoading && state.isFirstLoad;
+                  return TextField(
+                    controller: _searchController,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      hintText: "Tìm kiếm dự án, công ty...",
+                      hintStyle: TextStyle(
+                        color: theme.hintColor,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: theme.primaryColor,
+                        size: 22,
+                      ),
+                      // Loading indicator in search bar
+                      suffixIcon: isLoading
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : _currentSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -173,13 +249,20 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
                 decoration: BoxDecoration(
                   color: theme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+                  border: Border.all(
+                    color: theme.primaryColor.withOpacity(0.2),
+                  ),
                 ),
-                child: Icon(Icons.filter_list_rounded,
-                    color: theme.primaryColor, size: 24),
+                child: Icon(
+                  Icons.filter_list_rounded,
+                  color: theme.primaryColor,
+                  size: 24,
+                ),
               ),
               offset: const Offset(0, 52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               onSelected: (String value) {
                 setState(() {
                   _sortDirection = value;
@@ -207,31 +290,44 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
     );
   }
 
-// Helper widget để tạo item cho PopupMenu cho đồng nhất UI
+  // Helper widget để tạo item cho PopupMenu cho đồng nhất UI
   PopupMenuItem<String> _buildPopupItem({
     required String value,
     required IconData icon,
     required String title,
     required bool isSelected,
   }) {
+    final theme = Theme.of(context);
     return PopupMenuItem<String>(
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 20, color: isSelected ? Colors.blue : Colors.grey.shade700),
+          Icon(
+            icon,
+            size: 20,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+          ),
           const SizedBox(width: 12),
           Text(
             title,
             style: TextStyle(
               fontSize: 14,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.blue : Colors.black87,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.textTheme.bodyMedium?.color,
             ),
           ),
           if (isSelected) ...[
             const Spacer(),
-            const Icon(Icons.check_circle, size: 16, color: Colors.blue),
-          ]
+            Icon(
+              Icons.check_circle,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+          ],
         ],
       ),
     );
@@ -264,14 +360,22 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
   Widget _buildSectionHeader(ThemeData theme) {
     return BlocBuilder<HiringProjectsCubit, HiringProjectsState>(
       builder: (context, state) {
-        final hasMore = state is HiringProjectsLoaded && state.totalElements > 3;
+        final hasMore =
+            state is HiringProjectsLoaded && state.totalElements > 3;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Dự án mới nhất", style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              "Dự án mới nhất",
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             if (hasMore)
               TextButton(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HiringProjectsPage())),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const HiringProjectsPage()),
+                ),
                 child: const Text("Xem tất cả"),
               ),
           ],
@@ -284,16 +388,18 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
     return BlocBuilder<HiringProjectsCubit, HiringProjectsState>(
       builder: (context, state) {
         List<ProjectEntity> projects = [];
-        if (state is HiringProjectsLoaded) projects = state.projects.take(state.displayLimit).toList();
+        if (state is HiringProjectsLoaded)
+          projects = state.projects.take(state.displayLimit).toList();
         if (state is HiringProjectsLoading) projects = state.oldProjects;
 
-        if (projects.isEmpty) return SliverToBoxAdapter(child: _buildEmptyState());
+        if (projects.isEmpty)
+          return SliverToBoxAdapter(child: _buildEmptyState());
 
         return SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-                  (context, index) => Padding(
+              (context, index) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: HiringProjectCard(project: projects[index]),
               ),
@@ -306,31 +412,77 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
   }
 
   Widget _buildSearchResults() {
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabController,
-          tabs: const [Tab(text: 'Dự án'), Tab(text: 'Công ty')],
-          labelColor: Theme.of(context).primaryColor,
-          indicatorColor: Theme.of(context).primaryColor,
+    return MultiBlocListener(
+      listeners: [
+        // ✅ ADDED: Error handling for Projects search
+        BlocListener<SearchProjectsCubit, SearchState>(
+          listener: (context, state) {
+            if (state is SearchError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Lỗi tìm kiếm dự án: ${state.message}'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  action: SnackBarAction(
+                    label: 'Thử lại',
+                    textColor: Colors.white,
+                    onPressed: () => _triggerSearch(_currentSearchQuery),
+                  ),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          },
         ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildSearchListView<ProjectEntity, SearchProjectsCubit>(),
-              _buildSearchListView<CompanyEntity, SearchCompaniesCubit>(),
-            ],
-          ),
+        // ✅ ADDED: Error handling for Companies search
+        BlocListener<SearchCompaniesCubit, SearchState>(
+          listener: (context, state) {
+            if (state is SearchError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Lỗi tìm kiếm công ty: ${state.message}'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  action: SnackBarAction(
+                    label: 'Thử lại',
+                    textColor: Colors.white,
+                    onPressed: () => _triggerSearch(_currentSearchQuery),
+                  ),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          },
         ),
       ],
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Dự án'),
+              Tab(text: 'Công ty'),
+            ],
+            labelColor: Theme.of(context).primaryColor,
+            indicatorColor: Theme.of(context).primaryColor,
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSearchListView<ProjectEntity, SearchProjectsCubit>(),
+                _buildSearchListView<CompanyEntity, SearchCompaniesCubit>(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSearchListView<T, C extends Cubit<SearchState>>() {
     return BlocBuilder<C, SearchState>(
       builder: (context, state) {
-        if (state is SearchLoading && state.isFirstLoad) return const Center(child: CircularProgressIndicator.adaptive());
+        if (state is SearchLoading && state.isFirstLoad)
+          return const Center(child: CircularProgressIndicator.adaptive());
         if (state is SearchLoaded<T>) {
           if (state.items.isEmpty) return _buildEmptyState();
           return ListView.separated(
@@ -339,13 +491,21 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
             separatorBuilder: (_, __) => const SizedBox(height: 16),
             itemBuilder: (ctx, index) {
               if (index == state.items.length) {
-                return Center(child: FilledButton.tonal(
-                  onPressed: () => (context.read<C>() as dynamic).loadMore(_currentSearchQuery, state.currentPage, 10),
-                  child: const Text("Tải thêm"),
-                ));
+                return Center(
+                  child: FilledButton.tonal(
+                    onPressed: () => (context.read<C>() as dynamic).loadMore(
+                      _currentSearchQuery,
+                      state.currentPage,
+                      10,
+                    ),
+                    child: const Text("Tải thêm"),
+                  ),
+                );
               }
               final item = state.items[index];
-              return item is ProjectEntity ? HiringProjectCard(project: item) : CompanyCard(company: item as CompanyEntity);
+              return item is ProjectEntity
+                  ? HiringProjectCard(project: item)
+                  : CompanyCard(company: item as CompanyEntity);
             },
           );
         }
@@ -355,43 +515,30 @@ class _ExplorePageState extends State<ExplorePage> with TickerProviderStateMixin
   }
 
   Widget _buildQuickFilters(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.auto_awesome, size: 18, color: theme.primaryColor),
-            const SizedBox(width: 8),
-            Text("Gợi ý cho bạn", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _popularFilters.map((f) => Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: FilterChip(
-                label: Text(f),
-                onSelected: (_) {},
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey.shade200)),
-              ),
-            )).toList(),
-          ),
-        ),
-      ],
-    );
+    // ✅ REMOVED: Filter chips were non-functional (onSelected: (_) {})
+    // This was misleading to users who clicked expecting filtering
+    // TODO: Implement real filtering logic or keep this removed
+    return const SizedBox.shrink();
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
-            const Text("Không tìm thấy kết quả", style: TextStyle(color: Colors.grey)),
+            Icon(
+              Icons.search_off_rounded,
+              size: 48,
+              color: theme.disabledColor,
+            ),
+            Text(
+              "Không tìm thấy kết quả",
+              style: TextStyle(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
+            ),
           ],
         ),
       ),
@@ -405,17 +552,28 @@ class HiringProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deadline = project.endDate != null ? ProjectDataFormatter.formatDate(project.endDate!) : 'N/A';
+    final theme = Theme.of(context);
+    final deadline = project.endDate != null
+        ? ProjectDataFormatter.formatDate(project.endDate!)
+        : 'N/A';
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
-        onTap: () => AppRouter.pushNamed(Routes.projectDetailName, pathParameters: {'id': project.projectId}),
+        onTap: () => AppRouter.pushNamed(
+          Routes.projectDetailName,
+          pathParameters: {'id': project.projectId},
+        ),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -427,22 +585,41 @@ class HiringProjectCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-                    child: Icon(Icons.business_center_outlined, color: Colors.blue.shade700, size: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.business_center_outlined,
+                      color: Colors.blue.shade700,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(project.projectName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        Text(
+                          project.projectName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 4),
-                      ExpandableText(
+                        ExpandableText(
                           text: project.description,
                           maxLines: 2,
-                          style: TextStyle(fontSize: 14, color: Colors.grey.shade700
-                      )
-                      )
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -451,15 +628,33 @@ class HiringProjectCard extends StatelessWidget {
               const SizedBox(height: 16),
               if (project.skills.isNotEmpty)
                 Wrap(
-                  spacing: 8, runSpacing: 8,
-                  children: project.skills.map((s) => ServiceChip(name: s.name, color: '#2196F3', small: true)).toList(),
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: project.skills
+                      .map(
+                        (s) => ServiceChip(
+                          name: s.name,
+                          color: '#2196F3',
+                          small: true,
+                        ),
+                      )
+                      .toList(),
                 ),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1, thickness: 0.5)),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(height: 1, thickness: 0.5),
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildFooterBadge(Icons.people_outline, "${project.currentApplicants} Ứng viên"),
-                  Text("Hạn: $deadline", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  _buildFooterBadge(
+                    Icons.people_outline,
+                    "${project.currentApplicants} Ứng viên",
+                  ),
+                  Text(
+                    "Hạn: $deadline",
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
                 ],
               ),
             ],
@@ -472,12 +667,22 @@ class HiringProjectCard extends StatelessWidget {
   Widget _buildFooterBadge(IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         children: [
           Icon(icon, size: 14, color: Colors.blue.shade700),
           const SizedBox(width: 6),
-          Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade700)),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade700,
+            ),
+          ),
         ],
       ),
     );

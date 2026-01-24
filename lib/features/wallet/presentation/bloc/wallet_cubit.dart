@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:labodc_mobile/features/wallet/presentation/bloc/wallet_state.dart';
 
 import '../../data/models/withdraw_request.dart';
+import '../../data/models/bank_info_request.dart';
 import '../../data/repositories/wallet_repository.dart';
 
 class WalletCubit extends Cubit<WalletState> {
@@ -12,21 +13,26 @@ class WalletCubit extends Cubit<WalletState> {
     emit(WalletLoading());
     final result = await repository.getMyWallet();
     result.fold(
-          (failure) => emit(WalletError(failure.message)),
-          (wallet) => emit(WalletLoaded(wallet)),
+      (failure) => emit(WalletError(failure.message)),
+      (wallet) => emit(WalletLoaded(wallet)),
     );
   }
-
 
   Future<void> withdrawMoney(WithdrawRequest request) async {
     emit(WalletLoading());
     final result = await repository.withdraw(request);
+    result.fold((failure) => emit(WalletError(failure.message)), (success) {
+      loadWallet();
+    });
+  }
+
+  /// Add bank info to wallet
+  Future<void> addBankInfo(BankInfoRequest request) async {
+    emit(WalletLoading());
+    final result = await repository.addBankInfo(request);
     result.fold(
-          (failure) => emit(WalletError(failure.message)),
-          (success) {
-        // Sau khi rút thành công, nên load lại ví để cập nhật số dư mới
-        loadWallet();
-      },
+      (failure) => emit(WalletError(failure.message)),
+      (wallet) => emit(WalletLoaded(wallet)),
     );
   }
 }

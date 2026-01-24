@@ -36,16 +36,16 @@ class MentorDashboardPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardHeader(theme: theme),
-            const SizedBox(height: 24),
-            Text(
-              'Hành động nhanh',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            // const SizedBox(height: 24),
+            // Text(
+            //   'Hành động nhanh',
+            //   style: theme.textTheme.titleMedium?.copyWith(
+            //     fontWeight: FontWeight.w600,
+            //   ),
+            // ),
+            // const SizedBox(height: 16),
+            // _buildQuickActions(context),
             const SizedBox(height: 16),
-            _buildQuickActions(context),
-            const SizedBox(height: 32),
             const MyProjectsSection(title: "Dự án của tôi"),
           ],
         ),

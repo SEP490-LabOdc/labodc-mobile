@@ -15,23 +15,25 @@ class VibrationState {
 }
 
 class VibrationCubit extends Cubit<VibrationState> {
-  VibrationCubit()
-      : super(const VibrationState(enabled: true, type: VibrationType.pattern));
+  final VibrationPrefs _prefs;
+
+  VibrationCubit(this._prefs)
+    : super(const VibrationState(enabled: true, type: VibrationType.pattern));
 
   /// load setting lúc khởi động
   Future<void> load() async {
-    final e = await VibrationPrefs.getEnabled();
-    final t = await VibrationPrefs.getType();
+    final e = await _prefs.getEnabled();
+    final t = await _prefs.getType();
     emit(VibrationState(enabled: e, type: t));
   }
 
   Future<void> setEnabled(bool v) async {
-    await VibrationPrefs.setEnabled(v);
+    await _prefs.setEnabled(v);
     emit(state.copyWith(enabled: v));
   }
 
   Future<void> setType(VibrationType t) async {
-    await VibrationPrefs.setType(t);
+    await _prefs.setType(t);
     emit(state.copyWith(type: t));
   }
 

@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:labodc_mobile/features/wallet/presentation/bloc/transaction_history_state.dart';
+
 import '../../data/repositories/transaction_repository.dart';
 
 class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
   final TransactionRepository repository;
-
   TransactionHistoryCubit(this.repository) : super(TransactionHistoryInitial());
 
   Future<void> loadTransactions() async {
@@ -15,5 +15,12 @@ class TransactionHistoryCubit extends Cubit<TransactionHistoryState> {
           (transactions) => emit(TransactionHistoryLoaded(transactions)),
     );
   }
-}
 
+  Future<void> loadTransactionDetail(String transactionId) async {
+    final result = await repository.getTransactionDetail(transactionId);
+    result.fold(
+          (failure) => emit(TransactionHistoryError("Chi tiết: ${failure.message}")),
+          (detail) => emit(TransactionDetailLoaded(detail)),
+    );
+  }
+}

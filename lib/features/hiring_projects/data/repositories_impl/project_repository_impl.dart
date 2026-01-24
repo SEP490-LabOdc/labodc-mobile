@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../../../../core/cache/cache_manager.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../shared/models/search_request_model.dart';
@@ -13,7 +14,9 @@ import '../models/project_model.dart';
 class ProjectRepositoryImpl implements ProjectRepository {
   final ProjectRemoteDataSource remoteDataSource;
   final ProjectLocalDataSource localDataSource;
-
+  final CacheManager<PaginatedProjectEntity> _projectsCache = CacheManager(
+    maxSize: 20,
+  );
 
   ProjectRepositoryImpl(this.remoteDataSource, this.localDataSource);
 
@@ -23,10 +26,22 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required int pageSize,
   }) async {
     try {
+      // ⚡ Check cache first
+      final cacheKey = 'projects_p${page}_s$pageSize';
+      final cached = _projectsCache.get(cacheKey);
+      if (cached != null) {
+        return Right(cached);
+      }
+
+      // Fetch from API if not cached
       final remoteData = await remoteDataSource.getHiringProjects(
         page: page,
         pageSize: pageSize,
       );
+
+      // ⚡ Store in cache with 5-minute TTL
+      _projectsCache.put(cacheKey, remoteData, ttl: const Duration(minutes: 5));
+
       return Right(remoteData);
     } on ServerException catch (e) {
       final int statusCode = e.statusCode ?? 500;
@@ -48,7 +63,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, ProjectDetailModel>> getProjectDetail(String projectId) async {
+  Future<Either<Failure, ProjectDetailModel>> getProjectDetail(
+    String projectId,
+  ) async {
     try {
       final remoteData = await remoteDataSource.getProjectDetail(projectId);
       // Thành công trả về Right chứa data
@@ -98,7 +115,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, PaginatedProjectEntity>> searchProjects(SearchRequest request) async {
+  Future<Either<Failure, PaginatedProjectEntity>> searchProjects(
+    SearchRequest request,
+  ) async {
     try {
       final remoteData = await remoteDataSource.searchProjects(request);
       return Right(remoteData);
@@ -120,8 +139,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return const Left(UnknownFailure());
     }
   }
+
   @override
-  Future<Either<Failure, void>> bookmarkProject(ProjectEntity project, String userId) async {
+  Future<Either<Failure, void>> bookmarkProject(
+    ProjectEntity project,
+    String userId,
+  ) async {
     try {
       final model = ProjectModel(
         projectId: project.projectId,
@@ -131,11 +154,15 @@ class ProjectRepositoryImpl implements ProjectRepository {
         endDate: project.endDate,
         currentApplicants: project.currentApplicants,
         status: project.status,
-        skills: project.skills.map((e) => SkillModel(
-            id: e.id,
-            name: e.name,
-            description: e.description
-        )).toList(),
+        skills: project.skills
+            .map(
+              (e) => SkillModel(
+                id: e.id,
+                name: e.name,
+                description: e.description,
+              ),
+            )
+            .toList(),
       );
       await localDataSource.saveProject(model, userId);
       return const Right(null);
@@ -149,7 +176,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       localDataSource.isBookmarked(projectId, userId);
 
   @override
-  Future<Either<Failure, void>> unbookmarkProject(String projectId, String userId) async {
+  Future<Either<Failure, void>> unbookmarkProject(
+    String projectId,
+    String userId,
+  ) async {
     try {
       await localDataSource.removeProject(projectId, userId);
       return const Right(null);
@@ -159,7 +189,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, List<ProjectEntity>>> getBookmarkedProjects(String userId) async {
+  Future<Either<Failure, List<ProjectEntity>>> getBookmarkedProjects(
+    String userId,
+  ) async {
     try {
       final localData = await localDataSource.getSavedProjects(userId);
       return Right(localData);
