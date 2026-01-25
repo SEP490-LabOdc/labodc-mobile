@@ -35,19 +35,25 @@ class ProjectMilestoneModel {
       projectName: json['projectName'],
       title: json['title'],
       budget: (json['budget'] ?? 0).toDouble(),
-      description: json['description'],
+      description: json['description'] ?? '',
       startDate: DateTime.parse(json['startDate']),
       endDate: DateTime.parse(json['endDate']),
       status: json['status'],
-      talents: (json['talents'] as List)
-          .map((e) => MilestoneUserModel.fromJson(e))
-          .toList(),
-      mentors: (json['mentors'] as List)
-          .map((e) => MilestoneUserModel.fromJson(e))
-          .toList(),
-      attachments: (json['attachments'] as List)
-          .map((e) => MilestoneAttachmentModel.fromJson(e))
-          .toList(),
+      talents:
+          (json['talents'] as List<dynamic>?)
+              ?.map((e) => MilestoneUserModel.fromJson(e))
+              .toList() ??
+          [],
+      mentors:
+          (json['mentors'] as List<dynamic>?)
+              ?.map((e) => MilestoneUserModel.fromJson(e))
+              .toList() ??
+          [],
+      attachments:
+          (json['attachments'] as List<dynamic>?)
+              ?.map((e) => MilestoneAttachmentModel.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }

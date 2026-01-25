@@ -5,6 +5,7 @@ import 'package:labodc_mobile/core/get_it/get_it.dart';
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 import '../cubit/project_fund_cubit.dart';
 import '../cubit/project_fund_state.dart';
+import '../widgets/milestone_detail_modal.dart';
 
 import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 import 'package:labodc_mobile/features/milestone/data/models/project_milestone_model.dart';
@@ -34,7 +35,7 @@ class _ProjectFundView extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           "Quản lý Quỹ Nhóm",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
       ),
@@ -218,7 +219,9 @@ class _FundSummaryCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: theme.cardColor,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
             ),
             child: Text(
               amountText,
@@ -257,7 +260,9 @@ class _MilestonesCard extends StatelessWidget {
           BoxShadow(
             blurRadius: 12,
             offset: const Offset(0, 4),
-            color: Colors.black.withOpacity(theme.brightness == Brightness.dark ? 0.2 : 0.05),
+            color: Colors.black.withOpacity(
+              theme.brightness == Brightness.dark ? 0.2 : 0.05,
+            ),
           ),
         ],
       ),
@@ -271,11 +276,17 @@ class _MilestonesCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Milestones (${state.milestones.length})',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               if (state.isLoadingMilestones)
-                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -283,7 +294,10 @@ class _MilestonesCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: Text('Không có milestone nào', style: TextStyle(color: theme.hintColor)),
+                child: Text(
+                  'Không có milestone nào',
+                  style: TextStyle(color: theme.hintColor),
+                ),
               ),
             )
           else
@@ -292,7 +306,8 @@ class _MilestonesCard extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: state.milestones.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _MilestoneRow(milestone: state.milestones[index]),
+              itemBuilder: (context, index) =>
+                  _MilestoneRow(milestone: state.milestones[index]),
             ),
         ],
       ),
@@ -307,51 +322,89 @@ class _MilestoneRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final budgetText = ProjectDataFormatter.formatCurrency(context, milestone.budget);
+    final budgetText = ProjectDataFormatter.formatCurrency(
+      context,
+      milestone.budget,
+    );
     final endDateText = ProjectDataFormatter.formatDate(milestone.endDate);
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            milestone.title,
-            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+    return InkWell(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) =>
+                MilestoneDetailModal(milestone: milestone),
           ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Budget Chip
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                ),
-                child: Text(
-                  budgetText,
-                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceVariant.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              milestone.title,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-              // Date
-              Row(
-                children: [
-                  Icon(Icons.calendar_today_rounded, size: 14, color: theme.hintColor),
-                  const SizedBox(width: 4),
-                  Text(endDateText, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
-                ],
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Budget Chip
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    budgetText,
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                // Date
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 14,
+                      color: theme.hintColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      endDateText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -375,7 +428,12 @@ class _ErrorBox extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, color: scheme.error, size: 18),
           const SizedBox(width: 8),
-          Expanded(child: Text(message, style: TextStyle(color: scheme.error, fontSize: 13))),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: scheme.error, fontSize: 13),
+            ),
+          ),
           IconButton(
             onPressed: () => context.read<ProjectFundCubit>().clearError(),
             icon: Icon(Icons.close, size: 18, color: scheme.error),

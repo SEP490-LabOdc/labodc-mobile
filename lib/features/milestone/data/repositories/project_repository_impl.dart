@@ -9,6 +9,8 @@ import '../data_sources/milestone_remote_data_source.dart';
 import '../models/milestone_detail_model.dart';
 import '../models/milestone_disbursement_model.dart';
 import '../models/milestone_document_model.dart';
+import '../models/milestone_member_model.dart';
+import '../models/milestone_wallet_model.dart';
 import '../models/project_milestone_model.dart';
 
 class MilestoneRepositoryImpl implements MilestoneRepository {
@@ -17,10 +19,11 @@ class MilestoneRepositoryImpl implements MilestoneRepository {
   MilestoneRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, List<ProjectMilestoneModel>>> getMilestones(String projectId) async {
+  Future<Either<Failure, List<ProjectMilestoneModel>>> getMilestones(
+    String projectId,
+  ) async {
     try {
-      final result =
-      await remoteDataSource.getMilestones(projectId);
+      final result = await remoteDataSource.getMilestones(projectId);
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message, e.statusCode ?? 500));
@@ -32,7 +35,9 @@ class MilestoneRepositoryImpl implements MilestoneRepository {
   }
 
   @override
-  Future<Either<Failure, MilestoneDetailModel>> getMilestoneDetail(String milestoneId) async {
+  Future<Either<Failure, MilestoneDetailModel>> getMilestoneDetail(
+    String milestoneId,
+  ) async {
     try {
       final result = await remoteDataSource.getMilestoneDetail(milestoneId);
       return Right(result);
@@ -46,7 +51,9 @@ class MilestoneRepositoryImpl implements MilestoneRepository {
   }
 
   @override
-  Future<Either<Failure, List<MilestoneDocumentModel>>> getMilestoneDocuments(String milestoneId) async {
+  Future<Either<Failure, List<MilestoneDocumentModel>>> getMilestoneDocuments(
+    String milestoneId,
+  ) async {
     try {
       final result = await remoteDataSource.getMilestoneDocuments(milestoneId);
       return Right(result);
@@ -60,9 +67,65 @@ class MilestoneRepositoryImpl implements MilestoneRepository {
   }
 
   @override
-  Future<Either<Failure, MilestoneDisbursementModel>> getMilestoneDisbursement(String milestoneId) async {
+  Future<Either<Failure, MilestoneDisbursementModel>> getMilestoneDisbursement(
+    String milestoneId,
+  ) async {
     try {
-      final result = await remoteDataSource.getMilestoneDisbursement(milestoneId);
+      final result = await remoteDataSource.getMilestoneDisbursement(
+        milestoneId,
+      );
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProjectMilestoneModel>>> getPaidMilestones(
+    String projectId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getPaidMilestones(projectId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<MilestoneMemberModel>>> getMilestoneMembersByRole(
+    String milestoneId,
+    String role,
+  ) async {
+    try {
+      final result = await remoteDataSource.getMilestoneMembersByRole(
+        milestoneId,
+        role,
+      );
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message, e.statusCode ?? 500));
+    } on NetworkException {
+      return const Left(NetworkFailure());
+    } catch (e) {
+      return Left(ServerFailure(e.toString(), 500));
+    }
+  }
+
+  @override
+  Future<Either<Failure, MilestoneWalletModel?>> getMilestoneWallet(
+    String milestoneId,
+  ) async {
+    try {
+      final result = await remoteDataSource.getMilestoneWallet(milestoneId);
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message, e.statusCode ?? 500));

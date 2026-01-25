@@ -44,6 +44,8 @@ import '../../features/project_application/presentation/cubit/project_applicatio
 
 // Report Feature
 import '../../features/project_application/presentation/cubit/project_documents_cubit.dart';
+import '../../features/project_fund/presentation/cubit/milestone_detail_cubit.dart'
+    as fund_milestone;
 import '../../features/project_fund/presentation/cubit/project_fund_cubit.dart';
 import '../../features/report/data/data_sources/report_remote_data_source.dart';
 import '../../features/report/data/repositories_imp/report_repository_impl.dart';
@@ -381,6 +383,13 @@ Future<void> init() async {
   getIt.registerFactory<ProjectFundCubit>(
     () => ProjectFundCubit(
       projectApplicationRepository: getIt<ProjectApplicationRepository>(),
+      milestoneRepository: getIt<MilestoneRepository>(),
+    ),
+  );
+
+  // Register milestone detail cubit for project fund feature
+  getIt.registerFactory<fund_milestone.MilestoneDetailCubit>(
+    () => fund_milestone.MilestoneDetailCubit(
       milestoneRepository: getIt<MilestoneRepository>(),
     ),
   );

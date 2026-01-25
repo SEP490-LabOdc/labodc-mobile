@@ -18,25 +18,25 @@ class ProjectFundCubit extends Cubit<ProjectFundState> {
 
   /// Gọi khi mở màn
   Future<void> loadInitial() async {
-    emit(state.copyWith(
-      isLoadingProjects: true,
-      clearError: true,
-    ));
+    emit(state.copyWith(isLoadingProjects: true, clearError: true));
 
     try {
       // getMyProjects: Future<Either<Failure, List<MyProjectModel>>>
-      final projectsResult =
-      await projectApplicationRepository.getMyProjects(status: null);
+      final projectsResult = await projectApplicationRepository.getMyProjects(
+        status: null,
+      );
 
       await projectsResult.fold(
-            (failure) async {
-          emit(state.copyWith(
-            isLoadingProjects: false,
-            isLoadingMilestones: false,
-            errorMessage: failure.message,
-          ));
+        (failure) async {
+          emit(
+            state.copyWith(
+              isLoadingProjects: false,
+              isLoadingMilestones: false,
+              errorMessage: failure.message,
+            ),
+          );
         },
-            (projects) async {
+        (projects) async {
           MyProjectModel? selectedProject;
           List<ProjectMilestoneModel> milestones = const [];
           double holding = 0;
@@ -46,14 +46,14 @@ class ProjectFundCubit extends Cubit<ProjectFundState> {
           if (projects.isNotEmpty) {
             selectedProject = projects.first;
 
-            final milestonesResult =
-            await milestoneRepository.getMilestones(selectedProject.id);
+            final milestonesResult = await milestoneRepository
+                .getPaidMilestones(selectedProject.id);
 
             milestonesResult.fold(
-                  (failure) {
+              (failure) {
                 errorMessage = failure.message;
               },
-                  (list) {
+              (list) {
                 milestones = list;
                 final calc = _calculateFund(list);
                 holding = calc.$1;
@@ -62,63 +62,76 @@ class ProjectFundCubit extends Cubit<ProjectFundState> {
             );
           }
 
-          emit(state.copyWith(
-            projects: projects,
-            selectedProject: selectedProject,
-            milestones: milestones,
-            holdingAmount: holding,
-            distributedAmount: distributed,
-            isLoadingProjects: false,
-            isLoadingMilestones: false,
-            errorMessage: errorMessage,
-          ));
+          emit(
+            state.copyWith(
+              projects: projects,
+              selectedProject: selectedProject,
+              milestones: milestones,
+              holdingAmount: holding,
+              distributedAmount: distributed,
+              isLoadingProjects: false,
+              isLoadingMilestones: false,
+              errorMessage: errorMessage,
+            ),
+          );
         },
       );
     } catch (e) {
-      emit(state.copyWith(
-        isLoadingProjects: false,
-        isLoadingMilestones: false,
-        errorMessage: 'Không thể tải dữ liệu: $e',
-      ));
+      emit(
+        state.copyWith(
+          isLoadingProjects: false,
+          isLoadingMilestones: false,
+          errorMessage: 'Không thể tải dữ liệu: $e',
+        ),
+      );
     }
   }
 
   /// Khi chọn 1 project khác
   Future<void> selectProject(MyProjectModel project) async {
-    emit(state.copyWith(
-      selectedProject: project,
-      isLoadingMilestones: true,
-      milestones: const [],
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(
+        selectedProject: project,
+        isLoadingMilestones: true,
+        milestones: const [],
+        clearError: true,
+      ),
+    );
 
     try {
       // getMilestones: Future<Either<Failure, List<ProjectMilestoneModel>>>
-      final milestonesResult =
-      await milestoneRepository.getMilestones(project.id);
+      final milestonesResult = await milestoneRepository.getPaidMilestones(
+        project.id,
+      );
 
       milestonesResult.fold(
-            (failure) {
-          emit(state.copyWith(
-            isLoadingMilestones: false,
-            errorMessage: failure.message,
-          ));
+        (failure) {
+          emit(
+            state.copyWith(
+              isLoadingMilestones: false,
+              errorMessage: failure.message,
+            ),
+          );
         },
-            (milestones) {
+        (milestones) {
           final calc = _calculateFund(milestones);
-          emit(state.copyWith(
-            milestones: milestones,
-            holdingAmount: calc.$1,
-            distributedAmount: calc.$2,
-            isLoadingMilestones: false,
-          ));
+          emit(
+            state.copyWith(
+              milestones: milestones,
+              holdingAmount: calc.$1,
+              distributedAmount: calc.$2,
+              isLoadingMilestones: false,
+            ),
+          );
         },
       );
     } catch (e) {
-      emit(state.copyWith(
-        isLoadingMilestones: false,
-        errorMessage: 'Không thể tải milestones: $e',
-      ));
+      emit(
+        state.copyWith(
+          isLoadingMilestones: false,
+          errorMessage: 'Không thể tải milestones: $e',
+        ),
+      );
     }
   }
 
