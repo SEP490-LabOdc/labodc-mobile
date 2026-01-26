@@ -117,6 +117,10 @@ import '../../features/company/presentation/cubit/company_cubit.dart';
 import '../../features/company/domain/use_cases/search_companies.dart';
 import '../../features/company/presentation/cubit/search_companies_cubit.dart';
 
+// Bank Service
+import '../services/bank_api_service.dart';
+import '../services/cubit/bank_cubit.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> init() async {
@@ -455,5 +459,18 @@ Future<void> init() async {
   );
   getIt.registerFactory<WalletCubit>(
     () => WalletCubit(getIt<WalletRepository>()),
+  );
+
+  // ---------------------------------------------------------------------------
+  // 14. Bank Service (VietQR)
+  // ---------------------------------------------------------------------------
+  getIt.registerLazySingleton<BankApiService>(
+    () => BankApiService(client: getIt<http.Client>()),
+  );
+  getIt.registerFactory<BankCubit>(
+    () => BankCubit(
+      apiService: getIt<BankApiService>(),
+      sharedPreferences: getIt<SharedPreferences>(),
+    ),
   );
 }
