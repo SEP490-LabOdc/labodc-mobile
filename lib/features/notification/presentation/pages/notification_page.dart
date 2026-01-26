@@ -58,8 +58,12 @@ class _NotificationPageState extends State<NotificationPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final Color primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final Color textColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final Color primaryColor = isDark
+        ? AppColors.darkPrimary
+        : AppColors.primary;
+    final Color textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.textPrimary;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -77,7 +81,10 @@ class _NotificationPageState extends State<NotificationPage>
             border: Border.all(color: primaryColor.withOpacity(0.2)),
           ),
           indicatorSize: TabBarIndicatorSize.tab,
-          indicatorPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          indicatorPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 6,
+          ),
           labelColor: textColor,
           unselectedLabelColor: textColor.withOpacity(0.6),
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -94,8 +101,16 @@ class _NotificationPageState extends State<NotificationPage>
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildNotificationList(context, list, emptyMessage: "Bạn chưa có thông báo nào"),
-              _buildNotificationList(context, unreadList, emptyMessage: "Không có thông báo chưa đọc"),
+              _buildNotificationList(
+                context,
+                list,
+                emptyMessage: "Bạn chưa có thông báo nào",
+              ),
+              _buildNotificationList(
+                context,
+                unreadList,
+                emptyMessage: "Không có thông báo chưa đọc",
+              ),
             ],
           );
         },
@@ -103,7 +118,11 @@ class _NotificationPageState extends State<NotificationPage>
     );
   }
 
-  Widget _buildNotificationList(BuildContext context, List<NotificationEntity> items, {required String emptyMessage}) {
+  Widget _buildNotificationList(
+    BuildContext context,
+    List<NotificationEntity> items, {
+    required String emptyMessage,
+  }) {
     final theme = Theme.of(context);
 
     if (items.isEmpty) {
@@ -111,8 +130,11 @@ class _NotificationPageState extends State<NotificationPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.notifications_none_outlined,
-                size: 80, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+            Icon(
+              Icons.notifications_none_outlined,
+              size: 80,
+              color: theme.colorScheme.onSurface.withOpacity(0.2),
+            ),
             const SizedBox(height: 16),
             Text(
               emptyMessage,
@@ -136,27 +158,92 @@ class _NotificationPageState extends State<NotificationPage>
 
         return Dismissible(
           key: ValueKey(notification.notificationRecipientId),
-          direction: DismissDirection.endToStart,
+          direction: DismissDirection.startToEnd, // Swipe RIGHT to delete
           background: Container(
             decoration: BoxDecoration(
-              color: Colors.redAccent.shade200,
+              color: Colors.red,
               borderRadius: BorderRadius.circular(16),
             ),
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20),
+            child: Row(
+              children: const [
+                Icon(Icons.delete, color: Colors.white, size: 28),
+                SizedBox(width: 8),
+                Text(
+                  'Xóa',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
           confirmDismiss: (direction) async {
-            // Có thể thêm dialog xác nhận xóa nếu cần
-            // Hiện tại dùng dismiss để đánh dấu đã đọc (nhanh)
-            context.read<WebSocketNotificationCubit>().markAsRead(notification.notificationRecipientId);
-            return false; // Trả về false để không xóa khỏi list UI, chỉ mark read
+            // Show confirmation dialog
+            return await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Xóa thông báo?'),
+                content: const Text(
+                  'Bạn có chắc muốn xóa thông báo này không?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Hủy'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text(
+                      'Xóa',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+          onDismissed: (direction) async {
+            final auth = context.read<AuthProvider>();
+            final cubit = context.read<WebSocketNotificationCubit>();
+
+            try {
+              await cubit.deleteNotification(
+                notification.notificationRecipientId,
+                token: auth.accessToken,
+              );
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã xóa thông báo'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Lỗi: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            }
           },
           child: InkWell(
             onTap: () {
               // 1. Logic Optimistic Update: Gọi Cubit để mark read + update UI ngay
               if (!isRead) {
-                context.read<WebSocketNotificationCubit>().markAsRead(notification.notificationRecipientId);
+                context.read<WebSocketNotificationCubit>().markAsRead(
+                  notification.notificationRecipientId,
+                );
               }
 
               // 2. Logic Navigation (nếu có deepLink)
@@ -178,13 +265,15 @@ class _NotificationPageState extends State<NotificationPage>
                       : theme.colorScheme.primary.withOpacity(0.3),
                   width: 1,
                 ),
-                boxShadow: isRead ? [] : [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+                boxShadow: isRead
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,9 +311,13 @@ class _NotificationPageState extends State<NotificationPage>
                                 notification.title,
                                 style: TextStyle(
                                   fontSize: 15,
-                                  fontWeight: isRead ? FontWeight.w600 : FontWeight.w800,
+                                  fontWeight: isRead
+                                      ? FontWeight.w600
+                                      : FontWeight.w800,
                                   color: isRead
-                                      ? theme.colorScheme.onSurface.withOpacity(0.8)
+                                      ? theme.colorScheme.onSurface.withOpacity(
+                                          0.8,
+                                        )
                                       : theme.colorScheme.onSurface,
                                 ),
                                 maxLines: 1,
@@ -250,8 +343,12 @@ class _NotificationPageState extends State<NotificationPage>
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.4,
-                            color: theme.colorScheme.onSurface.withOpacity(isRead ? 0.6 : 0.8),
-                            fontWeight: isRead ? FontWeight.normal : FontWeight.w500,
+                            color: theme.colorScheme.onSurface.withOpacity(
+                              isRead ? 0.6 : 0.8,
+                            ),
+                            fontWeight: isRead
+                                ? FontWeight.normal
+                                : FontWeight.w500,
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,

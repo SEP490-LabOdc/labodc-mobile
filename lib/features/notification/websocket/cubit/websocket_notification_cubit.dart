@@ -105,6 +105,43 @@ class WebSocketNotificationCubit extends Cubit<List<NotificationEntity>> {
     }
   }
 
+  Future<void> deleteNotification(
+    String notificationRecipientId, {
+    String? token,
+  }) async {
+    // Optimistic UI update - remove immediately
+    final originalList = List<NotificationEntity>.of(state);
+    final updatedList = state
+        .where((n) => n.notificationRecipientId != notificationRecipientId)
+        .toList();
+
+    emit(updatedList);
+    _updateWidget(); // Update widget count immediately
+
+    try {
+      final result = await repository.deleteNotification(
+        notificationRecipientId: notificationRecipientId,
+        token: token,
+      );
+
+      result.fold(
+        (failure) {
+          // Rollback on failure
+          debugPrint("❌ Delete notification failed: ${failure.message}");
+          emit(originalList);
+          _updateWidget();
+          throw Exception(failure.message);
+        },
+        (_) {
+          debugPrint("✅ Notification deleted successfully");
+        },
+      );
+    } catch (e) {
+      debugPrint("❌ Delete notification error: $e");
+      rethrow;
+    }
+  }
+
   Future<void> disconnect() async {
     await _stompSub?.cancel();
     _stompSub = null;

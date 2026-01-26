@@ -11,7 +11,7 @@ import '../models/notification_model.dart';
 class NotificationRemoteDataSource {
   final http.Client client;
   NotificationRemoteDataSource({http.Client? client})
-      : client = client ?? http.Client();
+    : client = client ?? http.Client();
 
   Failure _handleResponseError(http.Response response) {
     String errorMessage = "Lỗi máy chủ (${response.statusCode}).";
@@ -36,32 +36,42 @@ class NotificationRemoteDataSource {
     }
   }
 
-  Future<List<NotificationModel>> fetchNotifications(String userId,
-      {String? authToken}) async {
-    final url =
-    Uri.parse("${ApiConfig.baseUrl}/api/v1/notifications/users/$userId");
+  Future<List<NotificationModel>> fetchNotifications(
+    String userId, {
+    String? authToken,
+  }) async {
+    final url = Uri.parse(
+      "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId",
+    );
     return _fetchList(url, authToken);
   }
 
-  Future<List<NotificationModel>> fetchUnreadNotifications(String userId,
-      {String? authToken}) async {
+  Future<List<NotificationModel>> fetchUnreadNotifications(
+    String userId, {
+    String? authToken,
+  }) async {
     final url = Uri.parse(
-        "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/unread");
+      "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/unread",
+    );
     return _fetchList(url, authToken);
   }
 
   Future<List<NotificationModel>> _fetchList(Uri url, String? authToken) async {
     try {
-      final response = await client.get(
-        url,
-        headers: {
-          "Accept": "application/json",
-          if (authToken != null) "Authorization": "Bearer $authToken",
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await client
+          .get(
+            url,
+            headers: {
+              "Accept": "application/json",
+              if (authToken != null) "Authorization": "Bearer $authToken",
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       // [DEBUG FIX] In ra body raw để kiểm tra cấu trúc JSON
-      debugPrint('📥 API Response [${response.statusCode}]: ${utf8.decode(response.bodyBytes)}');
+      debugPrint(
+        '📥 API Response [${response.statusCode}]: ${utf8.decode(response.bodyBytes)}',
+      );
 
       if (response.statusCode == 200) {
         final bodyStr = utf8.decode(response.bodyBytes);
@@ -70,7 +80,8 @@ class NotificationRemoteDataSource {
         List<dynamic> dataList = [];
 
         // [LOGIC FIX] Xử lý an toàn: API có thể trả về { "data": [...] } hoặc trực tiếp [...]
-        if (jsonResponse is Map<String, dynamic> && jsonResponse.containsKey('data')) {
+        if (jsonResponse is Map<String, dynamic> &&
+            jsonResponse.containsKey('data')) {
           dataList = jsonResponse['data'] ?? [];
         } else if (jsonResponse is List) {
           dataList = jsonResponse;
@@ -96,15 +107,18 @@ class NotificationRemoteDataSource {
     String? authToken,
   }) async {
     final url = Uri.parse(
-        "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/$notificationRecipientId/read");
+      "${ApiConfig.baseUrl}/api/v1/notifications/users/$userId/$notificationRecipientId/read",
+    );
     try {
-      final response = await client.post(
-        url,
-        headers: {
-          "Accept": "application/json",
-          if (authToken != null) "Authorization": "Bearer $authToken",
-        },
-      ).timeout(const Duration(seconds: 10));
+      final response = await client
+          .post(
+            url,
+            headers: {
+              "Accept": "application/json",
+              if (authToken != null) "Authorization": "Bearer $authToken",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw _handleResponseError(response);
@@ -138,10 +152,9 @@ class NotificationRemoteDataSource {
         if (authToken != null) "Authorization": "Bearer $authToken",
       };
 
-      final response =
-      await client.post(url, headers: headers, body: body).timeout(
-        const Duration(seconds: 10),
-      );
+      final response = await client
+          .post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw _handleResponseError(response);
@@ -153,6 +166,42 @@ class NotificationRemoteDataSource {
     } on Failure {
       rethrow;
     } catch (e) {
+      throw UnknownFailure(e.toString());
+    }
+  }
+
+  Future<void> deleteNotification({
+    required String notificationRecipientId,
+    String? authToken,
+  }) async {
+    final url = Uri.parse(
+      "${ApiConfig.baseUrl}/api/v1/notifications/recipients/$notificationRecipientId",
+    );
+
+    try {
+      final response = await client
+          .delete(
+            url,
+            headers: {
+              "Accept": "application/json",
+              if (authToken != null) "Authorization": "Bearer $authToken",
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint(
+        '🗑️ DELETE Notification [$notificationRecipientId] → ${response.statusCode}',
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _handleResponseError(response);
+      }
+    } on SocketException {
+      throw const NetworkFailure();
+    } on TimeoutException {
+      throw const NetworkFailure();
+    } catch (e) {
+      if (e is Failure) rethrow;
       throw UnknownFailure(e.toString());
     }
   }

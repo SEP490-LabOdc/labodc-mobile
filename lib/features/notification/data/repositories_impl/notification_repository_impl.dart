@@ -15,7 +15,10 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? token,
   }) async {
     try {
-      final models = await remoteDataSource.fetchNotifications(userId, authToken: token);
+      final models = await remoteDataSource.fetchNotifications(
+        userId,
+        authToken: token,
+      );
       final entities = models.map(_mapToEntity).toList();
       return Right(entities);
     } on Failure catch (f) {
@@ -31,7 +34,10 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? token,
   }) async {
     try {
-      final models = await remoteDataSource.fetchUnreadNotifications(userId, authToken: token);
+      final models = await remoteDataSource.fetchUnreadNotifications(
+        userId,
+        authToken: token,
+      );
       final entities = models.map(_mapToEntity).toList();
       return Right(entities);
     } on Failure catch (f) {
@@ -47,11 +53,11 @@ class NotificationRepositoryImpl implements NotificationRepository {
     String? token,
   }) async {
     try {
-      final result = await fetchUnreadNotifications(userId: userId, token: token);
-      return result.fold(
-            (f) => Left(f),
-            (list) => Right(list.length),
+      final result = await fetchUnreadNotifications(
+        userId: userId,
+        token: token,
       );
+      return result.fold((f) => Left(f), (list) => Right(list.length));
     } on Failure catch (f) {
       return Left(f);
     } catch (e, st) {
@@ -98,6 +104,24 @@ class NotificationRepositoryImpl implements NotificationRepository {
       return Left(f);
     } catch (e, st) {
       return Left(UnknownFailure('registerDeviceToken error: $e\n$st'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteNotification({
+    required String notificationRecipientId,
+    String? token,
+  }) async {
+    try {
+      await remoteDataSource.deleteNotification(
+        notificationRecipientId: notificationRecipientId,
+        authToken: token,
+      );
+      return const Right(null);
+    } on Failure catch (f) {
+      return Left(f);
+    } catch (e, st) {
+      return Left(UnknownFailure('deleteNotification error: $e\n$st'));
     }
   }
 

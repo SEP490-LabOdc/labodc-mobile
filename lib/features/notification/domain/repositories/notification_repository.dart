@@ -30,4 +30,9 @@ abstract class NotificationRepository {
     required String platform,
     String? authToken,
   });
+
+  Future<Either<Failure, void>> deleteNotification({
+    required String notificationRecipientId,
+    String? token,
+  });
 }

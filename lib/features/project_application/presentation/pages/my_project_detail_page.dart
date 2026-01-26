@@ -100,8 +100,8 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
               Tab(text: "Tổng quan"),
               Tab(text: "Cột mốc"),
               Tab(text: "Tệp tin"),
-              Tab(text: "Hoạt động"),
-              Tab(text: "Hóa đơn"),
+              // Tab(text: "Hoạt động"),
+              // Tab(text: "Hóa đơn"),
             ],
           ),
         ),
@@ -158,9 +158,9 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       children: [
         _buildOverviewTab(project!),
         _buildMilestoneTab(project!),
-        _buildFilesTab(project!),
-        const Center(child: Text("Hoạt động dự án")),
-        const Center(child: Text("Hóa đơn dự án")),
+        _buildFilesTab(project!)
+        // const Center(child: Text("Hoạt động dự án")),
+        // const Center(child: Text("Hóa đơn dự án")),
       ],
     );
   }
