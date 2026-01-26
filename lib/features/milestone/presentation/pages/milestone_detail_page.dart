@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 import '../../../../shared/widgets/network_image_with_fallback.dart';
 import '../../../../shared/widgets/expandable_text.dart';
+import '../../../milestone/domain/enums/project_milestone_status.dart';
 
 import '../../../report/presentation/widgets/milestone_report_list.dart';
 import '../cubit/milestone_detail_cubit.dart';
@@ -30,7 +31,8 @@ class MilestoneDetailPage extends StatelessWidget {
         ? AppColors.darkTextPrimary
         : AppColors.textPrimary;
     return BlocProvider(
-      create: (context) => getIt<MilestoneDetailCubit>()..loadMilestoneDetail(milestoneId),
+      create: (context) =>
+          getIt<MilestoneDetailCubit>()..loadMilestoneDetail(milestoneId),
       child: BlocBuilder<MilestoneDetailCubit, MilestoneDetailState>(
         builder: (context, state) {
           if (state.isLoading) {
@@ -48,7 +50,10 @@ class MilestoneDetailPage extends StatelessWidget {
                   children: [
                     Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
                     const SizedBox(height: 16),
-                    Text(state.error!, style: const TextStyle(color: Colors.red)),
+                    Text(
+                      state.error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ],
                 ),
               ),
@@ -56,7 +61,9 @@ class MilestoneDetailPage extends StatelessWidget {
           }
 
           if (state.milestone == null) {
-            return const Scaffold(body: Center(child: Text("Không tìm thấy dữ liệu")));
+            return const Scaffold(
+              body: Center(child: Text("Không tìm thấy dữ liệu")),
+            );
           }
 
           final m = state.milestone!;
@@ -107,9 +114,11 @@ class MilestoneDetailPage extends StatelessWidget {
   // ---------------------------------------------------------
   Widget _buildOverview(BuildContext context, dynamic m) {
     // Kiểm tra quá hạn
-    final isOverdue = m.endDate.isBefore(DateTime.now())
-        && m.status != 'COMPLETED'
-        && m.status != 'PAID';
+    final status = ProjectMilestoneStatus.fromString(m.status);
+    final isOverdue =
+        m.endDate.isBefore(DateTime.now()) &&
+        status != ProjectMilestoneStatus.COMPLETED &&
+        status != ProjectMilestoneStatus.PAID;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -141,7 +150,10 @@ class MilestoneDetailPage extends StatelessWidget {
                     _statusBadge(m.status),
                     if (isOverdue)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
                           borderRadius: BorderRadius.circular(8),
@@ -150,9 +162,9 @@ class MilestoneDetailPage extends StatelessWidget {
                         child: Text(
                           "Quá hạn",
                           style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.red.shade700,
-                              fontWeight: FontWeight.bold
+                            fontSize: 12,
+                            color: Colors.red.shade700,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -180,7 +192,8 @@ class MilestoneDetailPage extends StatelessWidget {
                 _buildInfoRow(
                   icon: Icons.calendar_today_outlined,
                   label: "Thời gian",
-                  value: "${ProjectDataFormatter.formatDate(m.startDate)} - ${ProjectDataFormatter.formatDate(m.endDate)}",
+                  value:
+                      "${ProjectDataFormatter.formatDate(m.startDate)} - ${ProjectDataFormatter.formatDate(m.endDate)}",
                   valueColor: Colors.black87,
                 ),
                 const SizedBox(height: 12),
@@ -200,13 +213,21 @@ class MilestoneDetailPage extends StatelessWidget {
                 // Description
                 const Text(
                   "Mô tả chi tiết",
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ExpandableText(
                   text: m.description,
                   maxLines: 6,
-                  style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.black87),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.6,
+                    color: Colors.black87,
+                  ),
                 ),
               ],
             ),
@@ -285,15 +306,16 @@ class MilestoneDetailPage extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           Text(
             label,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -308,7 +330,11 @@ class MilestoneDetailPage extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
             label,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
         ),
         Container(
@@ -338,7 +364,10 @@ class MilestoneDetailPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final u = users[index];
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 leading: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -356,10 +385,19 @@ class MilestoneDetailPage extends StatelessWidget {
                 ),
                 title: Text(
                   u["name"] ?? "Không rõ",
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
                 ),
                 subtitle: u["email"] != null
-                    ? Text(u["email"], style: TextStyle(color: Colors.grey.shade500, fontSize: 13))
+                    ? Text(
+                        u["email"],
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 13,
+                        ),
+                      )
                     : null,
               );
             },

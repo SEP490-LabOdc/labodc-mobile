@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../milestone/domain/enums/project_milestone_status.dart';
 
 class ProjectDataFormatter {
   // Private constructor để ngăn chặn khởi tạo
@@ -91,10 +92,14 @@ class ProjectDataFormatter {
         return Colors.red; // Yêu cầu cập nhật - Màu đỏ cảnh báo
       case 'ON_GOING':
         return Colors.blue; // Đang thực hiện - Màu xanh dương
+      case 'PENDING_COMPLETED':
+        return Colors.teal; // Chờ hoàn thành - Màu xanh lục lam
       case 'COMPLETED':
         return Colors.green; // Đã hoàn thành - Màu xanh lá
       case 'PAID':
         return Colors.purple; // Đã thanh toán - Màu tím
+      case 'DISTRIBUTED':
+        return Colors.indigo; // Đã phân bổ - Màu chàm
       default:
         return Colors.grey;
     }
@@ -110,13 +115,29 @@ class ProjectDataFormatter {
         return 'Yêu cầu cập nhật';
       case 'ON_GOING':
         return 'Đang thực hiện';
+      case 'PENDING_COMPLETED':
+        return 'Chờ hoàn thành';
       case 'COMPLETED':
         return 'Đã hoàn thành';
       case 'PAID':
         return 'Đã thanh toán';
+      case 'DISTRIBUTED':
+        return 'Đã phân bổ';
       default:
         return status;
     }
+  }
+
+  /// Helper method to get color from enum
+  static Color getMilestoneStatusColorFromEnum(ProjectMilestoneStatus status) {
+    return getMilestoneStatusColor(status.name);
+  }
+
+  /// Helper method to translate from enum
+  static String translateMilestoneStatusFromEnum(
+    ProjectMilestoneStatus status,
+  ) {
+    return translateMilestoneStatus(status.name);
   }
 
   // --- REPORT STATUS ---
@@ -154,7 +175,6 @@ class ProjectDataFormatter {
         return status;
     }
   }
-
 
   //My APPLICATION STATUS
   static Color getApplicationStatusColor(String status) {

@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:labodc_mobile/core/error/failures.dart';
 import 'package:labodc_mobile/features/milestone/data/models/project_milestone_model.dart';
+import 'package:labodc_mobile/features/milestone/domain/enums/project_milestone_status.dart';
 import 'package:labodc_mobile/features/milestone/domain/repositories/milestone_repository.dart';
 import 'package:labodc_mobile/features/project_application/data/models/my_project_model.dart';
 import 'package:labodc_mobile/features/project_application/domain/repositories/project_application_repository.dart';
@@ -144,9 +145,9 @@ class ProjectFundCubit extends Cubit<ProjectFundState> {
 
     for (final m in milestones) {
       final b = m.budget; // double
-      final status = m.status.toUpperCase();
+      final status = ProjectMilestoneStatus.fromString(m.status);
 
-      if (status == 'COMPLETED') {
+      if (status == ProjectMilestoneStatus.COMPLETED) {
         distributed += b;
       } else {
         holding += b;

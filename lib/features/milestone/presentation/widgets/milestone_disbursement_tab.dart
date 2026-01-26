@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/get_it/get_it.dart';
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
+import '../../domain/enums/project_milestone_status.dart';
 import '../cubit/disbursement_cubit.dart';
 import '../../data/models/milestone_disbursement_model.dart';
 
@@ -35,9 +36,13 @@ class MilestoneDisbursementTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMainContent(BuildContext context, MilestoneDisbursementModel data) {
+  Widget _buildMainContent(
+    BuildContext context,
+    MilestoneDisbursementModel data,
+  ) {
     return RefreshIndicator(
-      onRefresh: () => context.read<DisbursementCubit>().fetchDisbursement(milestoneId),
+      onRefresh: () =>
+          context.read<DisbursementCubit>().fetchDisbursement(milestoneId),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -81,9 +86,13 @@ class MilestoneDisbursementTab extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalCard(BuildContext context, MilestoneDisbursementModel data) {
+  Widget _buildTotalCard(
+    BuildContext context,
+    MilestoneDisbursementModel data,
+  ) {
     final theme = Theme.of(context);
-    final isCompleted = data.status == 'COMPLETED';
+    final status = ProjectMilestoneStatus.fromString(data.status);
+    final isCompleted = status == ProjectMilestoneStatus.COMPLETED;
 
     return Container(
       width: double.infinity,
@@ -100,7 +109,7 @@ class MilestoneDisbursementTab extends StatelessWidget {
             color: theme.primaryColor.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -108,7 +117,10 @@ class MilestoneDisbursementTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Tổng giải ngân", style: TextStyle(color: Colors.white70, fontSize: 16)),
+              const Text(
+                "Tổng giải ngân",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
               _statusChip(isCompleted),
             ],
           ),
@@ -135,20 +147,20 @@ class MilestoneDisbursementTab extends StatelessWidget {
                 style: TextStyle(color: Colors.white60, fontSize: 12),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
   }
 
   Widget _buildAmountTile(
-      BuildContext context, {
-        required String title,
-        required double amount,
-        required IconData icon,
-        required Color color,
-        required String subtitle,
-      }) {
+    BuildContext context, {
+    required String title,
+    required double amount,
+    required IconData icon,
+    required Color color,
+    required String subtitle,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -171,8 +183,17 @@ class MilestoneDisbursementTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text(subtitle, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -194,7 +215,11 @@ class MilestoneDisbursementTab extends StatelessWidget {
       ),
       child: Text(
         isCompleted ? "Hoàn tất" : "Chờ xử lý",
-        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -203,7 +228,10 @@ class MilestoneDisbursementTab extends StatelessWidget {
     return Row(
       children: [
         const SizedBox(width: 4),
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }
@@ -212,11 +240,15 @@ class MilestoneDisbursementTab extends StatelessWidget {
     final timeStr = DateFormat('dd/MM/yyyy HH:mm').format(date);
     return Column(
       children: [
-        Text("Dữ liệu được tính toán tự động dựa trên hợp đồng",
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+        Text(
+          "Dữ liệu được tính toán tự động dựa trên hợp đồng",
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+        ),
         const SizedBox(height: 4),
-        Text("Cập nhật: $timeStr",
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
+        Text(
+          "Cập nhật: $timeStr",
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+        ),
       ],
     );
   }
@@ -229,7 +261,9 @@ class MilestoneDisbursementTab extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              state.isBusinessError ? Icons.pending_actions_rounded : Icons.cloud_off_rounded,
+              state.isBusinessError
+                  ? Icons.pending_actions_rounded
+                  : Icons.cloud_off_rounded,
               size: 80,
               color: Colors.grey.shade300,
             ),
