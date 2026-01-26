@@ -21,6 +21,7 @@ abstract class MilestoneRemoteDataSource {
   );
   Future<MilestoneDisbursementModel> getMilestoneDisbursement(
     String milestoneId,
+    double totalAmount,
   );
 
   // New methods for paid milestones feature
@@ -163,9 +164,13 @@ class MilestoneRemoteDataSourceImpl implements MilestoneRemoteDataSource {
   @override
   Future<MilestoneDisbursementModel> getMilestoneDisbursement(
     String milestoneId,
+    double totalAmount,
   ) async {
-    final uri = ApiConfig.endpoint(
-      '/api/v1/disbursement/milestones/$milestoneId',
+    final uri = ApiConfig.endpoint('/api/v1/disbursement/preview').replace(
+      queryParameters: {
+        'milestoneId': milestoneId,
+        'totalAmount': totalAmount.toString(),
+      },
     );
 
     try {
@@ -177,10 +182,15 @@ class MilestoneRemoteDataSourceImpl implements MilestoneRemoteDataSource {
         debugPrint(
           '[MilestoneDisbursement] GET $uri → status=${response.statusCode}',
         );
+        debugPrint('[MilestoneDisbursement] Response body: $body');
       }
 
-      if (response.statusCode == 200 && decoded['success'] == true) {
-        return MilestoneDisbursementModel.fromJson(decoded['data']);
+      if (response.statusCode == 200) {
+        if (kDebugMode) {
+          debugPrint('[MilestoneDisbursement] Parsing data directly');
+        }
+        // This endpoint returns data directly without success/data wrapper
+        return MilestoneDisbursementModel.fromJson(decoded);
       }
 
       throw ServerException(
@@ -190,6 +200,9 @@ class MilestoneRemoteDataSourceImpl implements MilestoneRemoteDataSource {
     } on SocketException {
       throw NetworkException();
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MilestoneDisbursement] Error: $e');
+      }
       if (e is ServerException || e is NetworkException) rethrow;
       throw ServerException('Lỗi hệ thống: $e');
     }

@@ -5,11 +5,14 @@ import '../../data/models/milestone_disbursement_model.dart';
 abstract class DisbursementState {}
 
 class DisbursementInitial extends DisbursementState {}
+
 class DisbursementLoading extends DisbursementState {}
+
 class DisbursementLoaded extends DisbursementState {
   final MilestoneDisbursementModel disbursement;
   DisbursementLoaded(this.disbursement);
 }
+
 class DisbursementFailure extends DisbursementState {
   final String message;
   final bool isBusinessError;
@@ -21,16 +24,16 @@ class DisbursementCubit extends Cubit<DisbursementState> {
 
   DisbursementCubit({required this.repository}) : super(DisbursementInitial());
 
-  Future<void> fetchDisbursement(String milestoneId) async {
+  Future<void> fetchDisbursement(String milestoneId, double totalAmount) async {
     emit(DisbursementLoading());
-    final result = await repository.getMilestoneDisbursement(milestoneId);
-
-    result.fold(
-          (failure) {
-        bool isBusiness = failure.message.contains("Chưa có thông tin giải ngân");
-        emit(DisbursementFailure(failure.message, isBusinessError: isBusiness));
-      },
-          (data) => emit(DisbursementLoaded(data)),
+    final result = await repository.getMilestoneDisbursement(
+      milestoneId,
+      totalAmount,
     );
+
+    result.fold((failure) {
+      bool isBusiness = failure.message.contains("Chưa có thông tin giải ngân");
+      emit(DisbursementFailure(failure.message, isBusinessError: isBusiness));
+    }, (data) => emit(DisbursementLoaded(data)));
   }
 }

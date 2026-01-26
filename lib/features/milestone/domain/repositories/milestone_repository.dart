@@ -20,6 +20,7 @@ abstract class MilestoneRepository {
   );
   Future<Either<Failure, MilestoneDisbursementModel>> getMilestoneDisbursement(
     String milestoneId,
+    double totalAmount,
   );
 
   // New methods for paid milestones feature

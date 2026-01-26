@@ -19,10 +19,7 @@ import '../widgets/project_documents_tab.dart';
 class MyProjectDetailPage extends StatefulWidget {
   final String projectId;
 
-  const MyProjectDetailPage({
-    super.key,
-    required this.projectId,
-  });
+  const MyProjectDetailPage({super.key, required this.projectId});
 
   @override
   State<MyProjectDetailPage> createState() => _MyProjectDetailPageState();
@@ -30,7 +27,6 @@ class MyProjectDetailPage extends StatefulWidget {
 
 class _MyProjectDetailPageState extends State<MyProjectDetailPage>
     with TickerProviderStateMixin {
-
   late final TabController _tab;
   ProjectDetailModel? project;
   bool loading = true;
@@ -39,7 +35,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 5, vsync: this);
+    _tab = TabController(length: 3, vsync: this);
     _fetchProject();
   }
 
@@ -55,11 +51,11 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
     if (!mounted) return;
 
     result.fold(
-          (failure) => setState(() {
+      (failure) => setState(() {
         errorMessage = failure.message;
         loading = false;
       }),
-          (data) => setState(() {
+      (data) => setState(() {
         project = data;
         loading = false;
       }),
@@ -87,7 +83,10 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
-          title: const Text("Chi tiết dự án", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            "Chi tiết dự án",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           elevation: 0,
           bottom: TabBar(
             controller: _tab,
@@ -100,8 +99,6 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
               Tab(text: "Tổng quan"),
               Tab(text: "Cột mốc"),
               Tab(text: "Tệp tin"),
-              // Tab(text: "Hoạt động"),
-              // Tab(text: "Hóa đơn"),
             ],
           ),
         ),
@@ -117,20 +114,20 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
 
         // FAB
         floatingActionButton:
-        (isMentor && project != null && !loading && errorMessage == null)
+            (isMentor && project != null && !loading && errorMessage == null)
             ? FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    ProjectApplicantsPage(projectId: project!.id),
-              ),
-            );
-          },
-          label: const Text("Ứng viên"),
-          icon: const Icon(Icons.people_alt_outlined),
-        )
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ProjectApplicantsPage(projectId: project!.id),
+                    ),
+                  );
+                },
+                label: const Text("Ứng viên"),
+                icon: const Icon(Icons.people_alt_outlined),
+              )
             : null,
       ),
     );
@@ -142,15 +139,22 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       children: [
         Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
         const SizedBox(height: 12),
-        Text(errorMessage ?? "Đã xảy ra lỗi", style: TextStyle(color: theme.colorScheme.error)),
+        Text(
+          errorMessage ?? "Đã xảy ra lỗi",
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
         const SizedBox(height: 16),
-        FilledButton.tonal(onPressed: _fetchProject, child: const Text("Thử lại")),
+        FilledButton.tonal(
+          onPressed: _fetchProject,
+          child: const Text("Thử lại"),
+        ),
       ],
     ),
   );
 
-  Widget _buildEmptyView(ThemeData theme) =>
-      Center(child: Text("Không tìm thấy dự án", style: theme.textTheme.bodyLarge));
+  Widget _buildEmptyView(ThemeData theme) => Center(
+    child: Text("Không tìm thấy dự án", style: theme.textTheme.bodyLarge),
+  );
 
   Widget _buildContent(ThemeData theme) {
     return TabBarView(
@@ -158,9 +162,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       children: [
         _buildOverviewTab(project!),
         _buildMilestoneTab(project!),
-        _buildFilesTab(project!)
-        // const Center(child: Text("Hoạt động dự án")),
-        // const Center(child: Text("Hóa đơn dự án")),
+        _buildFilesTab(project!),
       ],
     );
   }
@@ -198,7 +200,7 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -208,7 +210,10 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -263,14 +268,18 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
                 child: _buildInfoItem(
                   Icons.calendar_today_outlined,
                   "Bắt đầu",
-                  p.startDate != null ? ProjectDataFormatter.formatDate(p.startDate!) : "—",
+                  p.startDate != null
+                      ? ProjectDataFormatter.formatDate(p.startDate!)
+                      : "—",
                 ),
               ),
               Expanded(
                 child: _buildInfoItem(
                   Icons.event_available_outlined,
                   "Kết thúc",
-                  p.endDate != null ? ProjectDataFormatter.formatDate(p.endDate!) : "—",
+                  p.endDate != null
+                      ? ProjectDataFormatter.formatDate(p.endDate!)
+                      : "—",
                 ),
               ),
             ],
@@ -288,7 +297,13 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String label, String value, {bool isBold = false, Color? valueColor}) {
+  Widget _buildInfoItem(
+    IconData icon,
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -296,7 +311,10 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
           children: [
             Icon(icon, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
           ],
         ),
         const SizedBox(height: 4),
@@ -318,24 +336,41 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Mô tả dự án", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            "Mô tả dự án",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
           ExpandableText(
             text: description,
             maxLines: 5,
-            style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: Colors.black87,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTeamSection(String title, List members, {required bool isMentor}) {
+  Widget _buildTeamSection(
+    String title,
+    List members, {
+    required bool isMentor,
+  }) {
     if (members.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -343,19 +378,33 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: members.length,
-            separatorBuilder: (_, __) => Divider(height: 1, thickness: 0.5, color: Colors.grey.shade100, indent: 70),
+            separatorBuilder: (_, __) => Divider(
+              height: 1,
+              thickness: 0.5,
+              color: Colors.grey.shade100,
+              indent: 70,
+            ),
             itemBuilder: (_, index) {
               final m = members[index];
               // Xử lý dynamic model map từ json hoặc object
@@ -364,7 +413,10 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
               final roleName = m is Map ? m['roleName'] : (m.roleName);
 
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 leading: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -380,8 +432,17 @@ class _MyProjectDetailPageState extends State<MyProjectDetailPage>
                     ),
                   ),
                 ),
-                title: Text(name ?? "N/A", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                subtitle: Text(roleName ?? (isMentor ? "Mentor" : "Thành viên"), style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                title: Text(
+                  name ?? "N/A",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                subtitle: Text(
+                  roleName ?? (isMentor ? "Mentor" : "Thành viên"),
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                ),
               );
             },
           ),

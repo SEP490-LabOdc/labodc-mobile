@@ -98,7 +98,10 @@ class MilestoneDetailPage extends StatelessWidget {
                     _buildOverview(context, m),
                     MilestoneReportsList(milestoneId: milestoneId),
                     MilestoneDocumentsTab(milestoneId: milestoneId),
-                    MilestoneDisbursementTab(milestoneId: milestoneId),
+                    MilestoneDisbursementTab(
+                      milestoneId: milestoneId,
+                      totalAmount: m.budget,
+                    ),
                   ],
                 ),
               ),

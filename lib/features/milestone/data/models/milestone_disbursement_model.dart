@@ -1,34 +1,51 @@
+import 'disbursement_leader_model.dart';
+
 class MilestoneDisbursementModel {
-  final String disbursementId;
   final String milestoneId;
   final double totalAmount;
   final double systemFee;
-  final double mentorAmount;
-  final double talentAmount;
   final String status;
-  final DateTime updatedAt;
+  final DisbursementLeaderModel? mentorLeader;
+  final DisbursementLeaderModel? talentLeader;
 
   MilestoneDisbursementModel({
-    required this.disbursementId,
     required this.milestoneId,
     required this.totalAmount,
     required this.systemFee,
-    required this.mentorAmount,
-    required this.talentAmount,
     required this.status,
-    required this.updatedAt,
+    this.mentorLeader,
+    this.talentLeader,
   });
 
   factory MilestoneDisbursementModel.fromJson(Map<String, dynamic> json) {
-    return MilestoneDisbursementModel(
-      disbursementId: json['disbursementId'] ?? '',
-      milestoneId: json['milestoneId'] ?? '',
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      systemFee: (json['systemFee'] as num).toDouble(),
-      mentorAmount: (json['mentorAmount'] as num).toDouble(),
-      talentAmount: (json['talentAmount'] as num).toDouble(),
-      status: json['status'] ?? '',
-      updatedAt: DateTime.parse(json['updatedAt']),
-    );
+    try {
+      return MilestoneDisbursementModel(
+        milestoneId: json['milestoneId'] ?? '',
+        totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
+        systemFee: (json['systemFee'] as num?)?.toDouble() ?? 0.0,
+        status: json['status'] ?? '',
+        mentorLeader: json['mentorLeader'] != null
+            ? DisbursementLeaderModel.fromJson(json['mentorLeader'])
+            : null,
+        talentLeader: json['talentLeader'] != null
+            ? DisbursementLeaderModel.fromJson(json['talentLeader'])
+            : null,
+      );
+    } catch (e) {
+      throw Exception(
+        'Error parsing MilestoneDisbursementModel: $e, json: $json',
+      );
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'milestoneId': milestoneId,
+      'totalAmount': totalAmount,
+      'systemFee': systemFee,
+      'status': status,
+      'mentorLeader': mentorLeader?.toJson(),
+      'talentLeader': talentLeader?.toJson(),
+    };
   }
 }

@@ -69,10 +69,12 @@ class MilestoneRepositoryImpl implements MilestoneRepository {
   @override
   Future<Either<Failure, MilestoneDisbursementModel>> getMilestoneDisbursement(
     String milestoneId,
+    double totalAmount,
   ) async {
     try {
       final result = await remoteDataSource.getMilestoneDisbursement(
         milestoneId,
+        totalAmount,
       );
       return Right(result);
     } on ServerException catch (e) {

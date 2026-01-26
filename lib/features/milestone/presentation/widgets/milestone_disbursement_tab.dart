@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/get_it/get_it.dart';
 import '../../../hiring_projects/presentation/utils/project_data_formatter.dart';
 import '../../domain/enums/project_milestone_status.dart';
@@ -9,13 +8,20 @@ import '../../data/models/milestone_disbursement_model.dart';
 
 class MilestoneDisbursementTab extends StatelessWidget {
   final String milestoneId;
+  final double totalAmount;
 
-  const MilestoneDisbursementTab({super.key, required this.milestoneId});
+  const MilestoneDisbursementTab({
+    super.key,
+    required this.milestoneId,
+    required this.totalAmount,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<DisbursementCubit>()..fetchDisbursement(milestoneId),
+      create: (_) =>
+          getIt<DisbursementCubit>()
+            ..fetchDisbursement(milestoneId, totalAmount),
       child: BlocBuilder<DisbursementCubit, DisbursementState>(
         builder: (context, state) {
           if (state is DisbursementLoading) {
@@ -41,48 +47,76 @@ class MilestoneDisbursementTab extends StatelessWidget {
     MilestoneDisbursementModel data,
   ) {
     return RefreshIndicator(
-      onRefresh: () =>
-          context.read<DisbursementCubit>().fetchDisbursement(milestoneId),
+      onRefresh: () => context.read<DisbursementCubit>().fetchDisbursement(
+        milestoneId,
+        totalAmount,
+      ),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildHeader(context, data),
+            const SizedBox(height: 24),
             _buildTotalCard(context, data),
             const SizedBox(height: 24),
-            _buildSectionHeader("Chi tiết phân bổ"),
-            const SizedBox(height: 12),
-            _buildAmountTile(
-              context,
-              title: "Nhóm Talent",
-              amount: data.talentAmount,
-              icon: Icons.groups_rounded,
-              color: Colors.blue,
-              subtitle: "80% ngân sách cột mốc",
-            ),
-            const SizedBox(height: 12),
-            _buildAmountTile(
-              context,
-              title: "Mentor",
-              amount: data.mentorAmount,
-              icon: Icons.psychology_rounded,
-              color: Colors.purple,
-              subtitle: "Hỗ trợ hướng dẫn dự án",
-            ),
-            const SizedBox(height: 12),
-            _buildAmountTile(
-              context,
-              title: "Phí dịch vụ LabODC",
-              amount: data.systemFee,
-              icon: Icons.account_balance_rounded,
-              color: Colors.orange,
-              subtitle: "Vận hành và bảo trì hệ thống",
-            ),
-            const SizedBox(height: 32),
-            _buildFooter(data.updatedAt),
+            _buildDisbursementChart(context, data),
+            const SizedBox(height: 24),
+            _buildLeaderCards(context, data),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, MilestoneDisbursementModel data) {
+    final status = ProjectMilestoneStatus.fromString(data.status);
+    final statusText = status == ProjectMilestoneStatus.PENDING
+        ? 'Chưa ký quỹ'
+        : ProjectDataFormatter.translateMilestoneStatusFromEnum(status);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.account_balance_wallet, color: Colors.teal, size: 24),
+            SizedBox(width: 8),
+            Text(
+              'Chi tiết Phân bổ Milestone',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.info_outline, size: 14, color: Colors.orange.shade700),
+              const SizedBox(width: 4),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -90,93 +124,27 @@ class MilestoneDisbursementTab extends StatelessWidget {
     BuildContext context,
     MilestoneDisbursementModel data,
   ) {
-    final theme = Theme.of(context);
-    final status = ProjectMilestoneStatus.fromString(data.status);
-    final isCompleted = status == ProjectMilestoneStatus.COMPLETED;
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [theme.primaryColor, theme.primaryColor.withBlue(200)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: theme.primaryColor.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Tổng giải ngân",
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-              ),
-              _statusChip(isCompleted),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            ProjectDataFormatter.formatCurrency(context, data.totalAmount),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: Colors.white24),
-          const SizedBox(height: 8),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline, color: Colors.white60, size: 14),
-              SizedBox(width: 6),
-              Text(
-                "Tiền sẽ được chuyển vào ví sau khi phê duyệt",
-                style: TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAmountTile(
-    BuildContext context, {
-    required String title,
-    required double amount,
-    required IconData icon,
-    required Color color,
-    required String subtitle,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade100),
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.shade100),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Colors.teal.shade600,
+              size: 32,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -184,72 +152,391 @@ class MilestoneDisbursementTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                  'Tổng giá trị Milestone',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  subtitle,
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ProjectDataFormatter.formatCurrency(
+                    context,
+                    data.totalAmount,
+                  ),
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal.shade700,
+                  ),
                 ),
               ],
             ),
-          ),
-          Text(
-            ProjectDataFormatter.formatCurrency(context, amount),
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
           ),
         ],
       ),
     );
   }
 
-  Widget _statusChip(bool isCompleted) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        isCompleted ? "Hoàn tất" : "Chờ xử lý",
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
+  Widget _buildDisbursementChart(
+    BuildContext context,
+    MilestoneDisbursementModel data,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.pie_chart_outline, size: 20, color: Colors.black87),
+            SizedBox(width: 8),
+            Text(
+              'Biểu đồ Phân bổ',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-      ),
+        const SizedBox(height: 16),
+        _buildProgressBar(context, data),
+        const SizedBox(height: 12),
+        _buildLegend(context, data),
+      ],
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Row(
+  Widget _buildProgressBar(
+    BuildContext context,
+    MilestoneDisbursementModel data,
+  ) {
+    final systemPercent = (data.systemFee / data.totalAmount) * 100;
+    final mentorPercent = data.mentorLeader != null
+        ? (data.mentorLeader!.amount / data.totalAmount) * 100
+        : 0.0;
+    final talentPercent = data.talentLeader != null
+        ? (data.talentLeader!.amount / data.totalAmount) * 100
+        : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(width: 4),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        const Text(
+          'Phân bổ tự động',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 32,
+            child: Row(
+              children: [
+                if (systemPercent > 0)
+                  Expanded(
+                    flex: systemPercent.round(),
+                    child: Container(
+                      color: Colors.grey.shade400,
+                      alignment: Alignment.center,
+                      child: systemPercent > 8
+                          ? Text(
+                              '${systemPercent.toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                if (mentorPercent > 0)
+                  Expanded(
+                    flex: mentorPercent.round(),
+                    child: Container(
+                      color: Colors.blue.shade400,
+                      alignment: Alignment.center,
+                      child: mentorPercent > 8
+                          ? Text(
+                              '${mentorPercent.toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                if (talentPercent > 0)
+                  Expanded(
+                    flex: talentPercent.round(),
+                    child: Container(
+                      color: Colors.green.shade400,
+                      alignment: Alignment.center,
+                      child: talentPercent > 8
+                          ? Text(
+                              '${talentPercent.toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFooter(DateTime date) {
-    final timeStr = DateFormat('dd/MM/yyyy HH:mm').format(date);
+  Widget _buildLegend(BuildContext context, MilestoneDisbursementModel data) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildLegendItem('Hệ thống', Colors.grey.shade400),
+        _buildLegendItem('Mentor', Colors.blue.shade400),
+        _buildLegendItem('Team Talents', Colors.green.shade400),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLeaderCards(
+    BuildContext context,
+    MilestoneDisbursementModel data,
+  ) {
     return Column(
       children: [
-        Text(
-          "Dữ liệu được tính toán tự động dựa trên hợp đồng",
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Cập nhật: $timeStr",
-          style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
-        ),
+        if (data.mentorLeader != null) ...[
+          _buildLeaderCard(
+            context,
+            leader: data.mentorLeader!,
+            icon: Icons.psychology_rounded,
+            color: Colors.blue,
+            title: 'Mentor',
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (data.talentLeader != null) ...[
+          _buildLeaderCard(
+            context,
+            leader: data.talentLeader!,
+            icon: Icons.groups_rounded,
+            color: Colors.green,
+            title: 'Nhóm Talents',
+          ),
+          const SizedBox(height: 12),
+        ],
+        _buildSystemFeeCard(context, data),
       ],
+    );
+  }
+
+  Widget _buildLeaderCard(
+    BuildContext context, {
+    required dynamic leader,
+    required IconData icon,
+    required Color color,
+    required String title,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      ProjectDataFormatter.formatCurrency(
+                        context,
+                        leader.amount,
+                      ),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: leader.avatarUrl.isNotEmpty
+                    ? NetworkImage(leader.avatarUrl)
+                    : null,
+                child: leader.avatarUrl.isEmpty
+                    ? Icon(Icons.person, color: Colors.grey.shade400, size: 24)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            leader.fullName,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Trưởng nhóm',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      leader.email,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemFeeCard(
+    BuildContext context,
+    MilestoneDisbursementModel data,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.account_balance_rounded,
+              color: Colors.grey.shade600,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Phí hệ thống',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  ProjectDataFormatter.formatCurrency(context, data.systemFee),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
