@@ -32,7 +32,7 @@ class WalletCubit extends Cubit<WalletState> {
     final result = await repository.addBankInfo(request);
     result.fold(
       (failure) => emit(WalletError(failure.message)),
-      (wallet) => emit(WalletLoaded(wallet)),
+      (success) => loadWallet(), // Reload wallet to get updated bank list
     );
   }
 }

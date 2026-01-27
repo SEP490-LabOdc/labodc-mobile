@@ -11,7 +11,7 @@ import '../../../auth/presentation/provider/auth_provider.dart';
 import '../bloc/wallet_cubit.dart';
 import '../bloc/wallet_state.dart';
 import '../widgets/withdraw_modal.dart';
-import '../widgets/bank_setup_modal.dart';
+import '../widgets/bank_list_modal.dart';
 
 class MyWalletPage extends StatelessWidget {
   const MyWalletPage({super.key});
@@ -29,15 +29,26 @@ class MyWalletPage extends StatelessWidget {
 class _MyWalletView extends StatelessWidget {
   const _MyWalletView();
 
-  // Show bank setup modal for first-time setup
-  void _showBankSetupModal(BuildContext context) {
+  // Show bank management modal (list of banks + add new)
+  void _showBankManagementModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (modalContext) {
         return BlocProvider.value(
           value: context.read<WalletCubit>(),
-          child: const BankSetupModal(),
+          child: BlocBuilder<WalletCubit, WalletState>(
+            builder: (context, state) {
+              if (state is WalletLoaded) {
+                return BankListModal(wallet: state.wallet);
+              }
+              return const SizedBox(
+                height: 200,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            },
+          ),
         );
       },
     );
@@ -50,8 +61,8 @@ class _MyWalletView extends StatelessWidget {
     // Check if bank info exists
     if (state is WalletLoaded) {
       if (!state.wallet.hasBankInfo) {
-        // No bank info -> show setup modal first
-        _showBankSetupModal(context);
+        // No bank info -> show management modal (which has add button)
+        _showBankManagementModal(context);
         return;
       }
 
@@ -63,7 +74,7 @@ class _MyWalletView extends StatelessWidget {
           return BlocProvider.value(
             value: context.read<WalletCubit>(),
             child: WithdrawModal(
-              bankInfo: state.wallet.primaryBank!,
+              bankInfos: state.wallet.bankInfos,
               availableBalance: state.wallet.balance,
             ),
           );
@@ -76,7 +87,7 @@ class _MyWalletView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     const primaryTeal = Color(0xFF00796B);
-    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'VND');
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -254,7 +265,8 @@ class _MyWalletView extends StatelessWidget {
                                     isPrimary: false,
                                     color: primaryTeal,
                                     theme: theme,
-                                    onTap: () => _showBankSetupModal(context),
+                                    onTap: () =>
+                                        _showBankManagementModal(context),
                                   ),
                                 ),
                               ],

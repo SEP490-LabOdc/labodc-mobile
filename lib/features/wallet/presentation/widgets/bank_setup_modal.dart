@@ -303,7 +303,7 @@ class _BankSetupModalState extends State<BankSetupModal> {
             LengthLimitingTextInputFormatter(20),
           ],
           decoration: InputDecoration(
-            hintText: '1234567890',
+            hintText: 'Số tài khoản',
             prefixIcon: Icon(
               Icons.credit_card,
               color: theme.colorScheme.primary,
@@ -347,7 +347,7 @@ class _BankSetupModalState extends State<BankSetupModal> {
             LengthLimitingTextInputFormatter(50),
           ],
           decoration: InputDecoration(
-            hintText: 'NGUYEN VAN A',
+            hintText: 'Tên chủ tài khoản (NGUYEN VAN A)',
             prefixIcon: Icon(
               Icons.person_outline,
               color: theme.colorScheme.primary,

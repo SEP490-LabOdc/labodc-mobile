@@ -94,6 +94,8 @@ class ProjectDataFormatter {
         return Colors.blue; // Đang thực hiện - Màu xanh dương
       case 'PENDING_COMPLETED':
         return Colors.teal; // Chờ hoàn thành - Màu xanh lục lam
+      case 'PENDING_ADMIN_CHECK':
+        return Colors.cyan.shade700; // Admin đang kiểm tra
       case 'COMPLETED':
         return Colors.green; // Đã hoàn thành - Màu xanh lá
       case 'PAID':
@@ -117,6 +119,8 @@ class ProjectDataFormatter {
         return 'Đang thực hiện';
       case 'PENDING_COMPLETED':
         return 'Chờ hoàn thành';
+      case 'PENDING_ADMIN_CHECK':
+        return 'Admin đang kiểm tra';
       case 'COMPLETED':
         return 'Đã hoàn thành';
       case 'PAID':

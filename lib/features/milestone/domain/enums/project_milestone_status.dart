@@ -5,6 +5,7 @@ enum ProjectMilestoneStatus {
   UPDATE_REQUIRED,
   ON_GOING,
   PENDING_COMPLETED,
+  PENDING_ADMIN_CHECK,
   COMPLETED,
   PAID,
   DISTRIBUTED;
@@ -22,6 +23,8 @@ enum ProjectMilestoneStatus {
         return 'Đang thực hiện';
       case ProjectMilestoneStatus.PENDING_COMPLETED:
         return 'Chờ hoàn thành';
+      case ProjectMilestoneStatus.PENDING_ADMIN_CHECK:
+        return 'Admin đang kiểm tra';
       case ProjectMilestoneStatus.COMPLETED:
         return 'Hoàn thành';
       case ProjectMilestoneStatus.PAID:
